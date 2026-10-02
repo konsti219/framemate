@@ -42,9 +42,13 @@
             <Battery level={battery.level} {charging} size={26} />
           </div>
           <div class="muted">
-            {charging
-              ? `Charging · full in ${duration(battery.seconds_remaining)}`
-              : `About ${duration(battery.seconds_remaining)} left`}
+            {#if charging}
+              {battery.seconds_remaining > 0
+                ? `Charging · full in ${duration(battery.seconds_remaining)}`
+                : "Fully charged"}
+            {:else}
+              About {duration(battery.seconds_remaining)} left
+            {/if}
           </div>
         {:else}
           <div class="big">–</div>
