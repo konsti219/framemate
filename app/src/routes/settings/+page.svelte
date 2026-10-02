@@ -29,9 +29,10 @@
     </label>
     <label>
       <span>Token</span>
-      <input bind:value={token} placeholder="from the agent log / dashboard link" autocapitalize="off" autocorrect="off" spellcheck="false" />
+      <input bind:value={token} placeholder="XXXXX-XXXXX" autocapitalize="characters" autocorrect="off" spellcheck="false" />
     </label>
     <button class="button" type="submit">Save &amp; connect</button>
+    <p class="hint">Show the token on the Frame with <code>flatpak run dev.framemate.Agent token</code>.</p>
     <p class="status {agent.status}">{statusText}</p>
   </form>
 </Section>
@@ -67,6 +68,11 @@
   input:focus {
     outline: none;
     border-color: var(--accent);
+  }
+  .hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
   }
   .status {
     margin: 0;

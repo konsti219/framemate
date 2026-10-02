@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  // Icons are SVGs collected from the Steam client UI (they use currentColor).
+  // Open-source icons (Material Symbols, see ../icons/LICENSES.md); they use currentColor.
   const icons = import.meta.glob("../icons/*.svg", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 </script>
 

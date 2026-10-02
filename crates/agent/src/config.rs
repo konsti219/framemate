@@ -115,6 +115,12 @@ pub fn load_or_create_token() -> anyhow::Result<String> {
     Ok(token)
 }
 
+pub fn hostname() -> String {
+    std::fs::read_to_string("/proc/sys/kernel/hostname")
+        .map(|h| h.trim().to_owned())
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,10 +133,4 @@ mod tests {
         assert!(is_current_format("ABCDEFGHJK"));
         assert!(!is_current_format("cbad37e74cbd250279126bbbca61a0a9"));
     }
-}
-
-pub fn hostname() -> String {
-    std::fs::read_to_string("/proc/sys/kernel/hostname")
-        .map(|h| h.trim().to_owned())
-        .unwrap_or_default()
 }

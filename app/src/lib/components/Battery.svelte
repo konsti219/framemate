@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Steam's battery glyph (same geometry as the client's), with the fill drawn to scale.
+  // Horizontal battery glyph (original drawing): outline in currentColor, fill drawn to scale.
   let { level, charging = false, size = 20 }: { level: number | null | undefined; charging?: boolean; size?: number } =
     $props();
   const fill = $derived(Math.max(0, Math.min(1, level ?? 0)));
@@ -7,11 +7,12 @@
 </script>
 
 <svg viewBox="-4 0 52 36" width={(size * 52) / 36} height={size} aria-hidden="true">
-  <path fill-rule="evenodd" d="M39 6H0V30H39V22H42V14H39V6ZM36 9H3V27H36V9Z" fill="currentColor" />
+  <rect x="1.5" y="7.5" width="36" height="21" rx="3" fill="none" stroke="currentColor" stroke-width="3" />
+  <rect x="39" y="13.5" width="3.5" height="9" rx="1.2" fill="currentColor" />
   {#if level != null}
-    <rect x="6" y="12" width={27 * fill} height="12" fill={color} />
+    <rect x="5" y="11" width={29 * fill} height="14" rx="1" fill={color} />
   {/if}
   {#if charging}
-    <path d="M16 20L21 11V16H26L21 25V20H16Z" fill="white" />
+    <path d="M21.5 9.5L14 19.5H19L17.5 26.5L25 16.5H20Z" fill="white" />
   {/if}
 </svg>

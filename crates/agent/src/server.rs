@@ -53,7 +53,8 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
         });
 
     let listener = tokio::net::TcpListener::bind(config.listen).await?;
-    tracing::info!("listening on http://{}/?token={}", config.listen, config.token);
+    let token = crate::config::format_token(&config.token);
+    tracing::info!("listening on http://{}/?token={token} (token: {token})", config.listen);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;

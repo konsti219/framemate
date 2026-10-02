@@ -5,14 +5,39 @@ mod fmp4;
 mod hub;
 mod power;
 mod server;
+mod service;
 mod steamos;
 mod stream;
 mod v4l2;
 
 use tracing_subscriber::EnvFilter;
 
+const USAGE: &str = "\
+usage: framemate-agent [COMMAND]
+
+Without a command, runs the agent.
+
+commands:
+  install-service    start the agent with the user session (systemd user unit)
+  uninstall-service  remove that unit again
+  token              print the API token for the companion app";
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    match std::env::args().nth(1).as_deref() {
+        None => {}
+        Some("install-service") => return service::install().await,
+        Some("uninstall-service") => return service::uninstall().await,
+        Some("token") => {
+            println!("{}", config::format_token(&config::load_or_create_token()?));
+            return Ok(());
+        }
+        Some(_) => {
+            eprintln!("{USAGE}");
+            std::process::exit(2);
+        }
+    }
+
     // Under systemd, journald adds timestamps and doesn't render ANSI colors.
     let under_systemd = std::env::var_os("INVOCATION_ID").is_some();
     let log = tracing_subscriber::fmt()
