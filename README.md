@@ -137,6 +137,13 @@ bun run tauri dev                   # desktop window for UI work
 
 Authenticate with `?token=<token>` or `Authorization: Bearer <token>`.
 
+## Future
+
+- [ ] iOS Support
+- [ ] Feed on the App notifying you of newly frame verified games (in your library)
+- [ ] Control Downloads (pause, resume, reorder)
+- [ ] Turn off controller, headset, etc. 
+
 ## Credits
 
 - Icons: [Material Symbols](https://github.com/google/material-design-icons) (Apache-2.0); see
