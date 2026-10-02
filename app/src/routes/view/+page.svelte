@@ -130,13 +130,13 @@
   {/if}
 </div>
 
-<Section title="Stream">
+<Section title="Mirroring">
   <Row label="Resolution" value={stats ? `${stats.width}×${stats.height}` : null} />
   <Row label="Frame rate" value={stats ? `${stats.fps.toFixed(0)} fps (headset ${stats.source_fps.toFixed(0)})` : null} />
   <Row label="Bitrate" value={stats ? `${(stats.kbit_per_sec / 1000).toFixed(1)} Mbit/s` : null} />
   <Row label="Viewers" value={stats?.viewers} />
 </Section>
-<p class="hint muted">The headset only renders this view while someone watches. A sleeping headset shows black frames.</p>
+<p class="hint muted">Mirroring only runs while someone watches. A sleeping headset shows black frames.</p>
 
 <style>
   .player {

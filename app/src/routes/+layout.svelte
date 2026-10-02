@@ -12,7 +12,7 @@
   const tabs = [
     { href: "/", icon: "home", label: "Home" },
     { href: "/downloads", icon: "download", label: "Downloads" },
-    { href: "/view", icon: "cast", label: "View" },
+    { href: "/view", icon: "cast", label: "Mirroring" },
     { href: "/system", icon: "performance", label: "System" },
     { href: "/settings", icon: "settings", label: "Settings" },
   ];
