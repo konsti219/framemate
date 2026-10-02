@@ -15,7 +15,9 @@ const UNIT: &str = "framemate-agent.service";
 
 pub async fn install() -> anyhow::Result<()> {
     let exec = match std::env::var("FLATPAK_ID") {
-        Ok(app_id) => format!("/usr/bin/flatpak run --command=framemate-agent {app_id}"),
+        // `flatpak run` moves the app into its own scope outside this unit's cgroup, so
+        // stopping the unit would only kill the launcher; --die-with-parent ties them together.
+        Ok(app_id) => format!("/usr/bin/flatpak run --die-with-parent --command=framemate-agent {app_id}"),
         Err(_) => std::env::current_exe()?.display().to_string(),
     };
     let unit = format!(
