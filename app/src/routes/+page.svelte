@@ -5,7 +5,7 @@
   import Icon from "$lib/components/Icon.svelte";
   import Progress from "$lib/components/Progress.svelte";
   import Section from "$lib/components/Section.svelte";
-  import { bytes, duration, hmdActivity, percent } from "$lib/format";
+  import { bytes, duration, hmdActivity, percent, since } from "$lib/format";
 
   const topics = $derived(agent.state?.steam.topics);
   const battery = $derived(topics?.battery);
@@ -71,7 +71,8 @@
               <div>{controllerName(c.model)}</div>
               <div class="muted small">
                 {percent(c.battery)}
-                {c.charging ? "· charging" : c.connected ? "" : "· asleep"}
+                {#if c.charging}· charging
+                {:else if !c.connected}· asleep{c.last_seen_ms ? ` · seen ${since(c.last_seen_ms)} ago` : ""}{/if}
               </div>
             </div>
             <span class="spacer"></span>

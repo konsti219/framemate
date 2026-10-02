@@ -31,8 +31,9 @@ cargo build --release --target "$TARGET" -p framemate-agent
 # `systemctl --user start framemate-agent` when done.
 ssh "mkdir -p \$(dirname $REMOTE_BIN); systemctl --user stop framemate-agent $UNIT 2>/dev/null; systemctl --user reset-failed $UNIT 2>/dev/null; true"
 /usr/bin/scp -q "${SSH_OPTS[@]}" "target/$TARGET/release/framemate-agent" "$HOST:$REMOTE_BIN"
-# Share the Flatpak's config dir, so the dev build uses the same API token.
+# Share the Flatpak's config + state dirs: same API token, same remembered devices.
 ssh "systemd-run --user --unit=$UNIT --collect -p Restart=on-failure -p RestartSec=2 \
-  --setenv=XDG_CONFIG_HOME=\$HOME/.var/app/dev.framemate.Agent/config \$HOME/$REMOTE_BIN >/dev/null"
+  --setenv=XDG_CONFIG_HOME=\$HOME/.var/app/dev.framemate.Agent/config \
+  --setenv=XDG_STATE_HOME=\$HOME/.var/app/dev.framemate.Agent/.local/state \$HOME/$REMOTE_BIN >/dev/null"
 sleep 1
 ssh "systemctl --user --no-pager --lines=0 status $UNIT | head -3; journalctl --user -u $UNIT -n 5 --no-pager -o cat"

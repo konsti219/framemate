@@ -71,6 +71,10 @@ export interface VrDevice {
   battery: number | null;
   charging: boolean | null;
   connected: boolean | null;
+  /** Last time SteamVR reported it connected (agent-side memory). */
+  last_seen_ms?: number | null;
+  /** Not currently known to SteamVR (e.g. asleep since a reboot); last known state. */
+  remembered?: boolean;
 }
 
 export interface DownloadItem {

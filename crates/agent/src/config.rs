@@ -50,9 +50,18 @@ fn env_or(key: &str, default: &str) -> String {
 }
 
 fn config_dir() -> anyhow::Result<PathBuf> {
-    let base = match std::env::var_os("XDG_CONFIG_HOME") {
+    xdg_dir("XDG_CONFIG_HOME", ".config")
+}
+
+/// Persistent runtime state (e.g. remembered VR devices).
+pub fn state_dir() -> anyhow::Result<PathBuf> {
+    xdg_dir("XDG_STATE_HOME", ".local/state")
+}
+
+fn xdg_dir(var: &str, fallback: &str) -> anyhow::Result<PathBuf> {
+    let base = match std::env::var_os(var) {
         Some(dir) if !dir.is_empty() => PathBuf::from(dir),
-        _ => PathBuf::from(std::env::var_os("HOME").context("HOME not set")?).join(".config"),
+        _ => PathBuf::from(std::env::var_os("HOME").context("HOME not set")?).join(fallback),
     };
     Ok(base.join("framemate"))
 }

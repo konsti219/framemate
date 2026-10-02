@@ -1,5 +1,6 @@
 mod cdp;
 mod config;
+mod devices;
 mod encoder;
 mod fmp4;
 mod hub;

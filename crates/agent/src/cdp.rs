@@ -17,6 +17,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
 
+use crate::devices::DeviceMemory;
 use crate::hub::{Hub, now_ms};
 
 const TARGET_TITLE: &str = "SharedJSContext";
@@ -30,9 +31,10 @@ pub async fn run(hub: Arc<Hub>, cdp_url: String) {
         .trim_end_matches('/')
         .to_owned();
     let mut backoff = Duration::from_secs(1);
+    let mut devices = DeviceMemory::load();
     loop {
         let started = Instant::now();
-        let error = match session(&hub, &authority).await {
+        let error = match session(&hub, &authority, &mut devices).await {
             Ok(()) => "connection closed".to_owned(),
             Err(e) => format!("{e:#}"),
         };
@@ -49,7 +51,7 @@ pub async fn run(hub: Arc<Hub>, cdp_url: String) {
     }
 }
 
-async fn session(hub: &Hub, authority: &str) -> anyhow::Result<()> {
+async fn session(hub: &Hub, authority: &str, devices: &mut DeviceMemory) -> anyhow::Result<()> {
     let ws_url = find_target(authority).await?;
     let (ws, _) = tokio_tungstenite::connect_async(&ws_url)
         .await
@@ -92,7 +94,7 @@ async fn session(hub: &Hub, authority: &str) -> anyhow::Result<()> {
             }
             Some("Runtime.bindingCalled") if params["name"] == BINDING => {
                 if let Some(payload) = params["payload"].as_str() {
-                    handle_emit(hub, payload);
+                    handle_emit(hub, payload, devices);
                 }
             }
             Some(_) => {}
@@ -108,7 +110,7 @@ async fn session(hub: &Hub, authority: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn handle_emit(hub: &Hub, payload: &str) {
+fn handle_emit(hub: &Hub, payload: &str, devices: &mut DeviceMemory) {
     let Ok(mut msg) = serde_json::from_str::<Value>(payload) else {
         tracing::warn!("steam CDP: malformed emit payload");
         return;
@@ -116,7 +118,10 @@ fn handle_emit(hub: &Hub, payload: &str) {
     let Some(topic) = msg["topic"].as_str().map(str::to_owned) else {
         return;
     };
-    let data = msg["data"].take();
+    let mut data = msg["data"].take();
+    if topic == "vr_devices" {
+        data = devices.merge(data);
+    }
     hub.update(|s| {
         s.steam.last_event_ms = Some(now_ms());
         if topic == "error" {
