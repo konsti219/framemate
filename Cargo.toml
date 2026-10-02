@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/agent"]
+members = ["crates/agent", "app/src-tauri"]
+# `cargo build` at the root builds only the agent (the app is built via the Tauri CLI).
+default-members = ["crates/agent"]
 
 [workspace.package]
 version = "0.1.0"

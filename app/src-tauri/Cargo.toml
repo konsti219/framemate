@@ -1,0 +1,16 @@
+[package]
+name = "framemate-app"
+description = "FrameMate companion app"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+# Unique lib name avoids a bin/lib name clash (cargo#8519).
+name = "framemate_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

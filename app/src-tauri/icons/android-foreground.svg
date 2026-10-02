@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Adaptive-icon foreground for Android, generated from assets/framemate-black.svg without
+     its black tile (the background layer is black). Content is scaled to 0.6 around the centre
+     so it stays inside the launcher mask's safe zone (inner 66 of 108 dp), also for round masks.
+     Render with rsvg-convert into gen/android/.../mipmap-*/ic_launcher_foreground.png. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g transform="translate(102.4 102.4) scale(0.6)">
+  <!-- Frame -->
+  
+  <path
+     d="M 79.770658,81.497471 C 88.802511,66.421772 440,72 440,72 v 72 c 0,0 -287.53399,-8.46601 -296,0 -8.46601,8.46601 0,296 0,296 H 72 c 0,0 -1.261196,-343.426831 7.770658,-358.502529 z"
+     fill="#000000"
+     id="path1"
+    
+     style="fill:#ffffff;fill-opacity:1" />
+  <!-- Blue companion shape -->
+  <path
+     d="m 208,440 c 0,-128.13006 103.86994,-232 232,-232 0,0 3.28372,219.57202 -3.45363,230.27319 C 429.80902,448.97435 208,440 208,440 Z"
+     fill="#2196f3"
+     id="path2"
+     />
+  <!-- Friendly face -->
+  <circle
+     cx="180.0067"
+     cy="185.06584"
+     r="23.654644"
+     fill="#000000"
+     id="circle2"
+     style="stroke-width:1.81959;fill:#ffffff;fill-opacity:1" />
+  <circle
+     cx="322.91068"
+     cy="185.06584"
+     r="23.654644"
+     fill="#000000"
+     id="circle3"
+     style="stroke-width:1.81959;fill:#ffffff;fill-opacity:1" />
+  <path
+     d="m 217.29542,224.1911 c 14.60088,23.48211 53.53662,23.48211 68.13747,0"
+     fill="none"
+     stroke="#000000"
+     stroke-width="10.7716"
+     stroke-linecap="round"
+     id="path3"
+     style="stroke-width:21.3045;stroke-dasharray:none;stroke:#ffffff;stroke-opacity:1" />
+  </g>
+</svg>

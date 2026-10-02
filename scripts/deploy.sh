@@ -25,7 +25,7 @@ case "${1:-deploy}" in
 esac
 
 cd "$(dirname "$0")/.."
-cargo build --release --target "$TARGET"
+cargo build --release --target "$TARGET" -p framemate-agent
 
 ssh "mkdir -p \$(dirname $REMOTE_BIN); systemctl --user stop $UNIT 2>/dev/null; systemctl --user reset-failed $UNIT 2>/dev/null; true"
 /usr/bin/scp -q "${SSH_OPTS[@]}" "target/$TARGET/release/framemate-agent" "$HOST:$REMOTE_BIN"

@@ -6,7 +6,7 @@
 //! - `GET /stream`      headset-view player page (token read from `?token=` by the page)
 //! - `GET /api/stream/ws` headset view: JSON `{codec}`, fMP4 init segment, then one
 //!   moof+mdat per frame (see stream.rs, fmp4.rs)
-//! - `GET /favicon.svg`, `/favicon.png`  logo from `assets/`, no auth
+//! - `GET /favicon.svg` logo from `assets/`, no auth
 //! - `GET /healthz`     liveness, no auth
 //!
 //! `/api/*` requires the token via `?token=` or `Authorization: Bearer`.
@@ -44,8 +44,7 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
         .route("/api/ws", get(ws))
         .route("/stream", get(|| async { Html(include_str!("stream.html")) }))
         .route("/api/stream/ws", get(stream_ws))
-        .route("/favicon.svg", get(|| async { asset("image/svg+xml", include_bytes!("../../../assets/logo.svg")) }))
-        .route("/favicon.png", get(|| async { asset("image/png", include_bytes!("../../../assets/logo.png")) }))
+        .route("/favicon.svg", get(|| async { asset("image/svg+xml", include_bytes!("../../../assets/framemate-black.svg")) }))
         .route("/healthz", get(|| async { "ok" }))
         .with_state(AppState {
             hub,
@@ -73,7 +72,9 @@ fn authorized(app: &AppState, headers: &HeaderMap, query: &HashMap<String, Strin
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "));
-    bearer.or(query.get("token").map(String::as_str)) == Some(&*app.token)
+    bearer
+        .or(query.get("token").map(String::as_str))
+        .is_some_and(|token| crate::config::normalize_token(token) == *app.token)
 }
 
 async fn state(
