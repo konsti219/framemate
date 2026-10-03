@@ -121,7 +121,7 @@ PlasmoidItem {
             }
             Kirigami.Icon {
                 visible: root.charging && !root.stale
-                source: "flash"
+                source: Qt.resolvedUrl("../icons/charging.svg")
                 isMask: true
                 Layout.preferredWidth: Kirigami.Units.iconSizes.small
                 Layout.preferredHeight: Kirigami.Units.iconSizes.small
