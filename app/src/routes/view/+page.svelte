@@ -16,6 +16,7 @@
   let socket: WebSocket | null = null;
   let retry: ReturnType<typeof setTimeout> | undefined;
   let closed = false;
+  let objectUrl: string | undefined;
   const stats = $derived(agent.state?.stream);
   const fullscreen = $derived(!!page.state.fullscreen);
 
@@ -67,7 +68,9 @@
         return;
       }
       const source = new MediaSource();
-      video.src = URL.createObjectURL(source);
+      if (objectUrl) URL.revokeObjectURL(objectUrl); // previous connection's source
+      objectUrl = URL.createObjectURL(source);
+      video.src = objectUrl;
       source.addEventListener(
         "sourceopen",
         () => {
@@ -109,6 +112,7 @@
     closed = true;
     clearTimeout(retry);
     socket?.close();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
   });
 </script>
 

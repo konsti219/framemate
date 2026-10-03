@@ -101,7 +101,8 @@
   .status.connected {
     background: var(--green);
   }
-  .status.offline {
+  .status.offline,
+  .status.unauthorized {
     background: var(--red);
   }
   /* Flex, so the icon isn't placed on a text line (line-height would shift it off-center). */

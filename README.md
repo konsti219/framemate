@@ -95,7 +95,9 @@ page in any browser, and `http://frame.local:7380/stream?token=<your token>` mir
 - **Unofficial.** FrameMate relies on undocumented Steam internals. A Steam or SteamOS update can
   break parts of it until the agent is updated. Tested on SteamOS 0.4.3 (beta branch).
 - **Local network only.** The agent listens on port 7380 and talks plain HTTP/WebSocket, protected
-  by the token. Don't expose that port to the internet.
+  by the token. Don't expose that port to the internet. The connection isn't encrypted, so others
+  on the same network could read the token and what's sent, including Mirroring. Use FrameMate on
+  networks you trust, like your home Wi-Fi, not on public or shared ones.
 - **Developer Mode.** FrameMate doesn't depend on it. Note that while it is on, SteamOS's devkit
   service exposes Steam's debugging interface to your whole network (port 8081); FrameMate never
   uses that port.

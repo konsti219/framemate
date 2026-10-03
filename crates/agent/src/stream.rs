@@ -14,7 +14,7 @@ use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, ensure};
@@ -100,20 +100,22 @@ impl LiveStream {
         std::thread::Builder::new()
             .name("stream".into())
             .spawn(move || {
+                // Unregisters the pipeline however the thread ends, including a panic, so
+                // the next viewer starts a fresh one instead of joining a dead channel.
+                let _guard = StopGuard { stream: &this, tx: &thread_tx };
                 tracing::info!("stream: starting");
                 if let Err(e) = this.run(&thread_tx, &thread_want) {
                     tracing::warn!("stream: {e:#}");
                 }
-                // Dropping our sender ends all viewers if we stopped on an error.
-                this.stop_if_current(&thread_tx);
-                tracing::info!("stream: stopped");
             })
             .expect("spawn stream thread");
         Running { tx, want_keyframe }
     }
 
+    /// Dropping our sender (and the registered clone) ends all viewers.
     fn stop_if_current(&self, tx: &broadcast::Sender<Arc<Packet>>) {
-        let mut running = self.running.lock().unwrap();
+        // Runs during unwinding too: a poisoned lock must not turn into a double panic.
+        let mut running = self.running.lock().unwrap_or_else(PoisonError::into_inner);
         if running.as_ref().is_some_and(|r| r.tx.same_channel(tx)) {
             *running = None;
         }
@@ -136,6 +138,7 @@ impl LiveStream {
     fn run(&self, tx: &broadcast::Sender<Arc<Packet>>, want_keyframe: &AtomicBool) -> Result<()> {
         let source = LoopbackCapture::open(&self.config.source_device)?;
         let (width, height) = (source.width, source.height);
+        let frame_len = source.stride as usize * (height as usize).saturating_sub(1) + width as usize * 3;
         let mut encoder = Encoder::open(&self.config.encoder_device, encoder::Config {
             width,
             height,
@@ -156,6 +159,11 @@ impl LiveStream {
                 continue;
             };
             source_frames += 1;
+            if len < frame_len {
+                tracing::debug!("stream: short frame ({len} of {frame_len} bytes), skipped");
+                source.release(index)?;
+                continue;
+            }
             let now = Instant::now();
             if now >= next_due {
                 next_due = (next_due + interval).max(now);
@@ -198,6 +206,18 @@ impl LiveStream {
             }
         }
         Ok(())
+    }
+}
+
+struct StopGuard<'a> {
+    stream: &'a LiveStream,
+    tx: &'a broadcast::Sender<Arc<Packet>>,
+}
+
+impl Drop for StopGuard<'_> {
+    fn drop(&mut self) {
+        self.stream.stop_if_current(self.tx);
+        tracing::info!("stream: stopped");
     }
 }
 

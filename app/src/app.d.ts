@@ -9,7 +9,7 @@ declare global {
 
   interface Window {
     /** Native bridge from MainActivity.kt (Android only). */
-    FrameMateAndroid?: { setFullscreen(enabled: boolean): void };
+    FrameMateAndroid?: { setFullscreen(enabled: boolean): void; openUrl(url: string): void };
   }
 }
 

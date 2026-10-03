@@ -24,6 +24,9 @@ const TARGET_TITLE: &str = "SharedJSContext";
 const BINDING: &str = "__framemateEmit";
 const SHIM: &str = include_str!("shim.js");
 const MAX_BACKOFF: Duration = Duration::from_secs(30);
+/// The shim polls every few seconds, so silence this long means Steam may be hung: send a
+/// trivial evaluate, and give up on the session if that gets no answer either.
+const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub async fn run(hub: Arc<Hub>, cdp_url: String) {
     let authority = cdp_url
@@ -72,7 +75,19 @@ async fn session(hub: &Hub, authority: &str, devices: &mut DeviceMemory) -> anyh
         s.steam.error = None;
     });
 
-    while let Some(msg) = rx.next().await {
+    let mut pinged = false;
+    loop {
+        let msg = match tokio::time::timeout(IDLE_TIMEOUT, rx.next()).await {
+            Ok(Some(msg)) => msg,
+            Ok(None) => break,
+            Err(_) if pinged => bail!("Steam stopped responding"),
+            Err(_) => {
+                pinged = true;
+                tx.send(call("Runtime.evaluate", json!({"expression": "1"}))).await?;
+                continue;
+            }
+        };
+        pinged = false;
         let text = match msg? {
             Message::Text(text) => text,
             Message::Close(_) => break,

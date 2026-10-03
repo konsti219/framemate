@@ -1,6 +1,7 @@
 <script lang="ts">
   import Section from "$lib/components/Section.svelte";
   import Row from "$lib/components/Row.svelte";
+  import { external } from "$lib/external";
 </script>
 
 <Section title="Installation">
@@ -13,7 +14,7 @@
 
 <Section title="Token">
   <p>
-    FrameMate uses a token for communicating with your Steam Frame. This token is show on installation or by running
+    FrameMate uses a token for communicating with your Steam Frame. This token is shown on installation or by running
     <code>flatpak run dev.framemate.Agent token</code> on the headset with framemate-agent installed.
     Write it down, you will need it to connect the app with the headset.
   </p>
@@ -21,8 +22,8 @@
 
 <Section title="Connecting">
   <p>
-    Once the agent is installed on the headset, you aquired the token and the app is ready on your phone you can connect the two.
-    The connection requires the Frame's address, usually this will be frame.local, if that doesn't work try your headsets IP address directly.
+    Once the agent is installed on the headset, you acquired the token and the app is ready on your phone you can connect the two.
+    The connection requires the Frame's address, usually this will be frame.local, if that doesn't work try your headset's IP address directly.
     You can find out your IP by running <code>ip a</code>. Both headset and phone need to be in the same local network for the connection to work.
   </p>
 </Section>
@@ -30,13 +31,12 @@
 <Section title="Issues">
   <p>
     If you encounter any issues with the app or agent, please submit a GitHub Issue so I can get it fixed. <br>
-    <a href="https://github.com/nailuj05/framemate/issues/new">Submit an Issue here</a>
+    <a href="https://github.com/nailuj05/framemate/issues/new" onclick={external}>Submit an Issue here</a>
   </p>
 </Section>
 
 <style>
  p {
-   gap: 12px;
    min-height: 48px;
    padding: 8px var(--gutter);
    background: var(--surface);
@@ -44,6 +44,6 @@
    color: var(--text);
  }
  a {
-   color: #0000EE;
+   color: var(--accent);
  }
 </style>

@@ -29,7 +29,11 @@
 
 {#if !agent.state}
   <p class="empty">
-    {agent.status === "unconfigured" ? "Set up the connection in Settings." : "Connecting to your Frame…"}
+    {agent.status === "unconfigured"
+      ? "Set up the connection in Settings."
+      : agent.status === "unauthorized"
+        ? "The Frame rejected the token. Check it in Settings."
+        : "Connecting to your Frame…"}
   </p>
 {:else}
   <Section title="Steam Frame">

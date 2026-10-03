@@ -83,10 +83,13 @@ async fn state(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
 ) -> Response {
+    // CORS: the app's WebView (another origin) reads the status to tell a wrong token from
+    // an unreachable agent. Harmless, the token is still required.
+    let cors = [(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")];
     if !authorized(&app, &headers, &query) {
-        return StatusCode::UNAUTHORIZED.into_response();
+        return (StatusCode::UNAUTHORIZED, cors).into_response();
     }
-    ([(header::CONTENT_TYPE, "application/json")], app.hub.snapshot_json()).into_response()
+    (cors, [(header::CONTENT_TYPE, "application/json")], app.hub.snapshot_json()).into_response()
 }
 
 async fn ws(

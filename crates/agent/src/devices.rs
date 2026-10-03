@@ -16,7 +16,8 @@ const LAST_SEEN_SAVE_INTERVAL_MS: u64 = 5 * 60 * 1000;
 
 pub struct DeviceMemory {
     file: Option<PathBuf>,
-    /// Keyed by serial (stable), falling back to the OpenVR path.
+    /// Keyed by serial. Devices whose serial couldn't be read are passed through but not
+    /// remembered: keying them by path would leave a phantom duplicate once the serial shows up.
     known: BTreeMap<String, Value>,
     last_save_ms: u64,
 }
@@ -41,10 +42,14 @@ impl DeviceMemory {
         let mut out = Vec::with_capacity(live.len());
         let mut present = BTreeSet::new();
         for mut device in live {
-            let Some(key) = key(&device) else {
+            let Some(key) = serial(&device) else {
                 out.push(device);
                 continue;
             };
+            // Older versions keyed serial-less devices by OpenVR path; drop such leftovers.
+            if let Some(path) = device["path"].as_str().filter(|p| *p != key) {
+                self.known.remove(path);
+            }
             device["last_seen_ms"] = if device["connected"] == true {
                 json!(now)
             } else {
@@ -75,8 +80,12 @@ impl DeviceMemory {
 
     fn save(&mut self, now: u64) {
         let Some(file) = &self.file else { return };
+        // Write + rename, so a crash mid-write can't leave a truncated file behind
+        // (which would load as empty and lose every remembered device).
+        let tmp = file.with_extension("json.tmp");
         let result = std::fs::create_dir_all(file.parent().unwrap())
-            .and_then(|()| std::fs::write(file, serde_json::to_vec_pretty(&self.known).unwrap()));
+            .and_then(|()| std::fs::write(&tmp, serde_json::to_vec_pretty(&self.known).unwrap()))
+            .and_then(|()| std::fs::rename(&tmp, file));
         match result {
             Ok(()) => self.last_save_ms = now,
             Err(e) => tracing::warn!("saving {}: {e}", file.display()),
@@ -84,12 +93,8 @@ impl DeviceMemory {
     }
 }
 
-fn key(device: &Value) -> Option<String> {
-    device["serial"]
-        .as_str()
-        .filter(|s| !s.is_empty())
-        .or_else(|| device["path"].as_str())
-        .map(str::to_owned)
+fn serial(device: &Value) -> Option<String> {
+    device["serial"].as_str().filter(|s| !s.is_empty()).map(str::to_owned)
 }
 
 fn without_last_seen(known: &BTreeMap<String, Value>) -> BTreeMap<&String, Value> {
@@ -128,5 +133,27 @@ mod tests {
         assert_eq!(left["battery"], 0.5);
         assert!(left["last_seen_ms"].is_u64());
         assert!(merged.iter().find(|d| d["serial"] == "hmd").unwrap().get("remembered").is_none());
+    }
+
+    #[test]
+    fn serial_less_devices_are_not_remembered() {
+        let mut memory = DeviceMemory { file: None, known: BTreeMap::new(), last_save_ms: 0 };
+        // Serial read failed while the controller was connecting.
+        let mut connecting = device("right", true, 0.7);
+        connecting["serial"] = Value::Null;
+        memory.merge(json!([connecting]));
+        // Next poll has the serial: exactly one device, nothing remembered by path.
+        let merged = memory.merge(json!([device("right", true, 0.7)]));
+        assert_eq!(merged.as_array().unwrap().len(), 1);
+        assert_eq!(memory.known.len(), 1);
+    }
+
+    #[test]
+    fn drops_path_keyed_leftovers() {
+        let mut memory = DeviceMemory { file: None, known: BTreeMap::new(), last_save_ms: 0 };
+        memory.known.insert("/devices/right".into(), device("right", false, 0.5));
+        let merged = memory.merge(json!([device("right", true, 0.7)]));
+        assert_eq!(merged.as_array().unwrap().len(), 1);
+        assert!(!memory.known.contains_key("/devices/right"));
     }
 }

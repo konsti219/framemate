@@ -1,6 +1,8 @@
 package dev.framemate.app
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.net.Uri
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -17,15 +19,16 @@ class MainActivity : TauriActivity() {
 
   override fun onWebViewCreate(webView: WebView) {
     super.onWebViewCreate(webView)
-    webView.addJavascriptInterface(FullscreenBridge(), "FrameMateAndroid")
+    webView.addJavascriptInterface(NativeBridge(), "FrameMateAndroid")
   }
 
-  /**
-   * The app is portrait-only (see AndroidManifest). The headset view calls
-   * `FrameMateAndroid.setFullscreen(true)` to go landscape without system bars.
-   * WebViews can't do this themselves: the Screen Orientation API is browser-only.
-   */
-  inner class FullscreenBridge {
+  /** `window.FrameMateAndroid`: things the WebView can't do itself. */
+  inner class NativeBridge {
+    /**
+     * The app is portrait-only (see AndroidManifest). The headset view calls
+     * `FrameMateAndroid.setFullscreen(true)` to go landscape without system bars.
+     * WebViews can't do this themselves: the Screen Orientation API is browser-only.
+     */
     @JavascriptInterface
     fun setFullscreen(enabled: Boolean) = runOnUiThread {
       requestedOrientation =
@@ -37,6 +40,15 @@ class MainActivity : TauriActivity() {
         bars.hide(WindowInsetsCompat.Type.systemBars())
       } else {
         bars.show(WindowInsetsCompat.Type.systemBars())
+      }
+    }
+
+    /** Opens a web link in the system browser instead of navigating the app's WebView away. */
+    @JavascriptInterface
+    fun openUrl(url: String) = runOnUiThread {
+      val uri = Uri.parse(url)
+      if (uri.scheme == "https" || uri.scheme == "http") {
+        startActivity(Intent(Intent.ACTION_VIEW, uri))
       }
     }
   }

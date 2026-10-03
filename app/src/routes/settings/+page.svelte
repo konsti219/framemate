@@ -12,6 +12,7 @@
       connecting: "Connecting…",
       connected: `Connected to ${agent.state?.agent.hostname ?? agent.authority}`,
       offline: `Can't reach ${agent.authority}`,
+      unauthorized: "Wrong token. Check it on the Frame (see below).",
     }[agent.status],
   );
 
@@ -81,7 +82,8 @@
   .status.connected {
     color: var(--green);
   }
-  .status.offline {
+  .status.offline,
+  .status.unauthorized {
     color: var(--red);
   }
 </style>

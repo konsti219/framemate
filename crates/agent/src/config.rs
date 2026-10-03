@@ -30,6 +30,10 @@ impl Config {
             _ => load_or_create_token()?,
         };
         let token = normalize_token(&token);
+        let fps: u32 = env_or("FRAMEMATE_STREAM_FPS", "30").parse().context("FRAMEMATE_STREAM_FPS")?;
+        anyhow::ensure!((1..=120).contains(&fps), "FRAMEMATE_STREAM_FPS must be 1–120");
+        let bitrate: u32 = env_or("FRAMEMATE_STREAM_BITRATE", "6000000").parse().context("FRAMEMATE_STREAM_BITRATE")?;
+        anyhow::ensure!(bitrate > 0, "FRAMEMATE_STREAM_BITRATE must be > 0");
         Ok(Self {
             listen,
             cdp_url: env_or("FRAMEMATE_CDP", "http://127.0.0.1:8080"),
@@ -38,8 +42,8 @@ impl Config {
             stream: StreamConfig {
                 source_device: env_or("FRAMEMATE_STREAM_SOURCE", "/dev/video99").into(),
                 encoder_device: env_or("FRAMEMATE_STREAM_ENCODER", "/dev/video23"),
-                fps: env_or("FRAMEMATE_STREAM_FPS", "30").parse().context("FRAMEMATE_STREAM_FPS")?,
-                bitrate: env_or("FRAMEMATE_STREAM_BITRATE", "6000000").parse().context("FRAMEMATE_STREAM_BITRATE")?,
+                fps,
+                bitrate,
             },
         })
     }

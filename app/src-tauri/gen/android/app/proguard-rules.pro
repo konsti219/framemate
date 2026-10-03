@@ -11,8 +11,8 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
-# FullscreenBridge, called from JS as `window.FrameMateAndroid` (see MainActivity.kt).
--keepclassmembers class dev.framemate.app.MainActivity$FullscreenBridge {
+# NativeBridge, called from JS as `window.FrameMateAndroid` (see MainActivity.kt).
+-keepclassmembers class dev.framemate.app.MainActivity$NativeBridge {
    @android.webkit.JavascriptInterface <methods>;
 }
 
