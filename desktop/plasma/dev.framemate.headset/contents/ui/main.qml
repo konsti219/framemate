@@ -38,12 +38,6 @@ PlasmoidItem {
         try { return s ? JSON.parse(s) : null; } catch (e) { return null; }
     }
 
-    function batteryIcon(pct, chg) {
-        if (isNaN(pct)) return "battery-missing";
-        const step = Math.min(100, Math.max(0, Math.round(pct / 10) * 10));
-        return "battery-" + String(step).padStart(3, "0") + (chg ? "-charging" : "");
-    }
-
     function time(ms) {
         return ms ? Qt.formatTime(new Date(ms), "HH:mm") : "–";
     }
@@ -97,7 +91,7 @@ PlasmoidItem {
         onTriggered: poll()
     }
 
-    Plasmoid.icon: batteryIcon(shownLevel, charging && !stale)
+    Plasmoid.icon: Qt.resolvedUrl("../icons/vr-headset.svg")
     Plasmoid.status: isNaN(level) ? PlasmaCore.Types.PassiveStatus : PlasmaCore.Types.ActiveStatus
     toolTipMainText: i18n("Steam Frame: %1", levelText)
     toolTipSubText: {
@@ -118,11 +112,19 @@ PlasmoidItem {
             opacity: root.stale ? 0.6 : 1
             Kirigami.Icon {
                 source: Plasmoid.icon
+                isMask: true
                 Layout.preferredWidth: Kirigami.Units.iconSizes.small
                 Layout.preferredHeight: Kirigami.Units.iconSizes.small
             }
             PlasmaComponents.Label {
                 text: root.levelText
+            }
+            Kirigami.Icon {
+                visible: root.charging && !root.stale
+                source: "flash"
+                isMask: true
+                Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                Layout.preferredHeight: Kirigami.Units.iconSizes.small
             }
         }
     }
