@@ -20,7 +20,8 @@ Make sure of the following:
 - Port 7380 needs to be open on the frame, this is the case by default, if you installed or configured a firewall you'll need to open that port.
 - Check whether you can reach the (debug) web interface, you can access it by visiting http://frame.local:7380/health or http://<frame-ip>:7380/healthz in your browser.
 - mDNS used for resolving frame.local might be unreliable in some cases, use the plain ip from the frame instead
-- 
+ 
+ Note: Some guest or mesh wifi networks may isolate devices by default, make sure that isn't the issue before proceeding.
 
 ## Installation issues
 
