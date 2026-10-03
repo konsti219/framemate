@@ -143,6 +143,24 @@ Authenticate with `?token=<token>` or `Authorization: Bearer <token>`.
 In theory this app should be able to be build for iOS aswell, I do not have the devices or infrastructure to build and test an iOS version. 
 If you do and you want to contribute, please let me know!
 
+
+## Contributing
+
+Patches and bug reports are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Commits need a `Signed-off-by` line (`git commit -s`); there's no CLA.
+
+## License
+
+FrameMate is free software under the **GNU General Public License v3.0 or
+later** ([`LICENSE`](LICENSE)). You may use, study, share and modify it. If you
+distribute it — modified or not, free or for money — you must pass on the same
+freedoms and make the complete source available under the same license. Closed
+forks are not permitted.
+
+Two additional terms apply, in [`LICENSE-EXCEPTION.md`](LICENSE-EXCEPTION.md):
+an app store distribution permission under GPL-3.0 §7, and a reservation of the
+FrameMate name, logo and application identifiers (forks must use their own).
+
 ## Future
 
 - [ ] iOS Support
