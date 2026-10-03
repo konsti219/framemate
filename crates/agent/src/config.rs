@@ -22,7 +22,9 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
-        let listen = env_or("FRAMEMATE_LISTEN", "0.0.0.0:7380")
+        // IPv6 wildcard: the socket is made dual-stack in server.rs, so this covers
+        // IPv4 clients too. `frame.local` resolves to an AAAA record on many networks.
+        let listen = env_or("FRAMEMATE_LISTEN", "[::]:7380")
             .parse()
             .context("FRAMEMATE_LISTEN must be host:port")?;
         let token = match std::env::var("FRAMEMATE_TOKEN") {

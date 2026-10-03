@@ -12,15 +12,18 @@
 //! `/api/*` requires the token via `?token=` or `Authorization: Bearer`.
 
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use anyhow::Context;
 use axum::Router;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::get;
+use socket2::{Domain, Protocol, Socket, Type};
 
 use crate::config::Config;
 use crate::fmp4;
@@ -52,13 +55,34 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
             stream,
         });
 
-    let listener = tokio::net::TcpListener::bind(config.listen).await?;
+    let listener = listen(config.listen)?;
     let token = crate::config::format_token(&config.token);
     tracing::info!("listening on http://{}/?token={token} (token: {token})", config.listen);
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())
+}
+
+/// Binds the listener, accepting IPv4 *and* IPv6 when given an IPv6 wildcard address.
+///
+/// `frame.local` resolves to an AAAA record on many networks (and Chrome prefers it), while
+/// the app is usually handed an IPv4 address, so the agent has to answer on both families.
+/// A dual-stack socket needs `IPV6_V6ONLY` cleared before `bind`, which
+/// `TcpListener::bind` can't express; leaving it to the `net.ipv6.bindv6only` sysctl would
+/// silently drop IPv4 on a host that has it set.
+fn listen(addr: SocketAddr) -> anyhow::Result<tokio::net::TcpListener> {
+    let socket = Socket::new(Domain::for_address(addr), Type::STREAM, Some(Protocol::TCP))
+        .context("creating the listening socket")?;
+    if addr.is_ipv6() {
+        socket.set_only_v6(false).context("clearing IPV6_V6ONLY")?;
+    }
+    // A restart must not fail while the previous socket lingers.
+    socket.set_reuse_address(true)?;
+    socket.set_nonblocking(true)?;
+    socket.bind(&addr.into()).with_context(|| format!("binding {addr}"))?;
+    socket.listen(1024)?;
+    Ok(tokio::net::TcpListener::from_std(socket.into())?)
 }
 
 fn asset(content_type: &'static str, body: &'static [u8]) -> impl IntoResponse {
