@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/framemate-black.png">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/framemate-white.png">
     <img src="assets/framemate-white.png" alt="FrameMate logo" width="128">
   </picture>
 </p>
