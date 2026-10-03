@@ -174,6 +174,8 @@ FrameMate name, logo and application identifiers (forks must use their own).
 - [ ] PWA for the mobile client
 - [ ] Feed on the App notifying you of newly frame verified games (in your library)
 - [ ] Control Downloads (pause, resume, reorder)
+- [ ] View and Transfer Screenshots
+- [ ] Mobile Notifications in VR
 - [ ] Turn off controller, headset, etc. 
 
 ## AI usage
