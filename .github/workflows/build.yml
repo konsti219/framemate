@@ -1,10 +1,8 @@
-# Builds the agent Flatpak bundle and the Android APK and uploads both as workflow artifacts.
-# A pushed `v*` tag additionally publishes them as a GitHub release.
+# Runs on pushed `v*` tags: builds the agent Flatpak bundle and the Android APK, uploads both
 name: Build
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
