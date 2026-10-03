@@ -20,6 +20,7 @@ Make sure of the following:
 - Port 7380 needs to be open on the frame, this is the case by default, if you installed or configured a firewall you'll need to open that port.
 - Check whether you can reach the (debug) web interface, you can access it by visiting http://frame.local:7380/health or http://<frame-ip>:7380/healthz in your browser.
 - mDNS used for resolving frame.local might be unreliable in some cases, use the plain ip from the frame instead
+- Android 17 (SDK 37) blocks local network access by default for apps that target it. FrameMate declares `ACCESS_LOCAL_NETWORK`, if it still won't connect grant the permission under Settings > Apps > FrameMate > Permissions > Local network (it is part of the Nearby devices group, you may have to open that submenu). If you deny it, the connection will fail silently with a timeout.
  
  Note: Some guest or mesh wifi networks may isolate devices by default, make sure that isn't the issue before proceeding.
 
