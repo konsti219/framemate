@@ -152,6 +152,11 @@ If you do and you want to contribute, please let me know!
 - [ ] Control Downloads (pause, resume, reorder)
 - [ ] Turn off controller, headset, etc. 
 
+## AI usage
+
+This project used AI for reversing the Steam API (for use in the agent), the frontend of the mobile app, the shell scripts and the Actions used for building the releases.
+AI was also used for exploring how the Video Stream for Mirroring could be accessed and encoded.
+
 ## Credits
 
 - Icons: [Material Symbols](https://github.com/google/material-design-icons) (Apache-2.0); see
