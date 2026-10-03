@@ -1,0 +1,14 @@
+{
+    "KPlugin": {
+        "Id": "dev.framemate.headset",
+        "Name": "Steam Frame",
+        "Description": "Steam Frame and controller batteries from the FrameMate agent",
+        "Icon": "battery-good",
+        "Authors": [{ "Name": "FrameMate contributors" }],
+        "License": "MIT",
+        "Version": "0.1",
+        "Category": "System Information"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
