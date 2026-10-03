@@ -43,8 +43,8 @@
       </span>
     {/if}
     <span class="status {agent.status}" title={agent.status}></span>
-    <a href="/help" class:active={true} aria-label="Help" >
-      <Icon name="help" size="20" />
+    <a href="/help" class="help" class:active={true} aria-label="Help" >
+      <Icon name="help" size={20} />
     </a>
   </header>
 
@@ -103,6 +103,10 @@
   }
   .status.offline {
     background: var(--red);
+  }
+  /* Flex, so the icon isn't placed on a text line (line-height would shift it off-center). */
+  .help {
+    display: flex;
   }
   main {
     flex: 1;

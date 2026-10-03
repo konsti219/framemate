@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/agent", "app/src-tauri"]
-# `cargo build` at the root builds only the agent (the app is built via the Tauri CLI).
-default-members = ["crates/agent"]
+# Only the agent. The app's Rust shell (app/src-tauri) is its own project with its own
+# Cargo.lock, so Tauri's dependencies never touch the agent's static musl build.
+members = ["crates/agent"]
 
 [workspace.package]
 version = "0.1.0"

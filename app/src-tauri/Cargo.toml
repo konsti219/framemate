@@ -1,8 +1,11 @@
+# Standalone, not part of the root (agent) workspace.
+[workspace]
+
 [package]
 name = "framemate-app"
 description = "FrameMate companion app"
-version.workspace = true
-edition.workspace = true
+version = "0.1.0"
+edition = "2024"
 
 [lib]
 # Unique lib name avoids a bin/lib name clash (cargo#8519).
@@ -14,3 +17,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+
+[profile.release]
+strip = true
+lto = "thin"

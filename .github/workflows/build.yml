@@ -1,9 +1,11 @@
 # Builds the agent Flatpak bundle and the Android APK and uploads both as workflow artifacts.
+# A pushed `v*` tag additionally publishes them as a GitHub release.
 name: Build
 
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -18,7 +20,7 @@ jobs:
     name: Agent Flatpak
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -35,10 +37,11 @@ jobs:
       - name: Build bundle
         run: scripts/flatpak.sh
 
-      - uses: actions/upload-artifact@v4
+      # Unzipped single file; the artifact is named after it.
+      - uses: actions/upload-artifact@v7
         with:
-          name: framemate-agent.flatpak
           path: target/flatpak/framemate-agent.flatpak
+          archive: false
           if-no-files-found: error
 
   apk:
@@ -50,7 +53,7 @@ jobs:
       run:
         working-directory: app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -59,9 +62,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: app-android
+          workspaces: app/src-tauri -> target
 
       # Gradle 8 doesn't run on newer JDKs.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -95,8 +99,44 @@ jobs:
           cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk \
             ../framemate.apk
 
-      - uses: actions/upload-artifact@v4
+      # Unzipped single file; the artifact is named after it.
+      - uses: actions/upload-artifact@v7
         with:
-          name: framemate.apk
           path: framemate.apk
+          archive: false
           if-no-files-found: error
+
+  release:
+    name: GitHub release
+    needs: [flatpak, apk]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # The tag must match the versions baked into the builds (the APK's comes from
+      # tauri.conf.json; Android won't update over a higher installed version).
+      - name: Check version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          app=$(jq -r .version app/src-tauri/tauri.conf.json)
+          agent=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)
+          echo "tag $tag, app $app, agent $agent"
+          [[ "$app" == "$tag" && "$agent" == "$tag" ]] || {
+            echo "::error::Tag v$tag doesn't match tauri.conf.json ($app) / Cargo.toml ($agent)"
+            exit 1
+          }
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          find dist -type f
+          gh release create "$GITHUB_REF_NAME" $(find dist -type f) --generate-notes
