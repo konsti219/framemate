@@ -61,6 +61,7 @@ and run:
 curl -LO https://github.com/nailuj05/framemate/releases/latest/download/framemate-agent.flatpak
 flatpak install --user -y framemate-agent.flatpak
 flatpak run dev.framemate.Agent install-service
+rm framemate-agent.flatpak
 ```
 
 - `flatpak install` pulls the Freedesktop runtime from Flathub if it isn't installed yet
