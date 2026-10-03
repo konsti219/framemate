@@ -140,6 +140,11 @@ fn handle_emit(hub: &Hub, payload: &str, devices: &mut DeviceMemory) {
             tracing::debug!("shim error in {t}: {m}");
             s.steam.topic_errors.insert(t.to_owned(), m.to_owned());
         } else {
+            if topic == "suspend" && !s.sleep.asleep {
+                // Mark it before the network goes down (see sleep.rs); the resume clears it
+                s.sleep.asleep = true;
+                s.sleep.asleep_since_ms = Some(now_ms());
+            }
             s.steam.topic_errors.remove(&topic);
             s.steam.topics.insert(topic, data);
         }

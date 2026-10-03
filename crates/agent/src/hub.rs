@@ -10,6 +10,7 @@ use serde_json::Value;
 use tokio::sync::watch;
 
 use crate::power::PowerState;
+use crate::sleep::SleepState;
 use crate::stream::StreamStats;
 
 #[derive(Debug, Default, Serialize)]
@@ -18,6 +19,7 @@ pub struct State {
     pub steam: SteamState,
     pub power: Option<PowerState>,
     pub steamos: SteamOsState,
+    pub sleep: SleepState,
     /// Present while the headset-view stream runs (i.e. someone is watching).
     pub stream: Option<StreamStats>,
 }

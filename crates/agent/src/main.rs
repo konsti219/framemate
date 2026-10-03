@@ -9,6 +9,7 @@ mod hub;
 mod power;
 mod server;
 mod service;
+mod sleep;
 mod steamos;
 mod stream;
 mod v4l2;
@@ -63,6 +64,7 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(cdp::run(hub.clone(), config.cdp_url.clone()));
     tokio::spawn(power::run(hub.clone(), config.power_supply_dir.clone()));
     tokio::spawn(steamos::run(hub.clone()));
+    tokio::spawn(sleep::run(hub.clone()));
 
     server::serve(hub, stream, &config).await
 }

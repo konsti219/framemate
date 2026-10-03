@@ -53,6 +53,11 @@
       battery_state: s.eBatteryState,
     }));
 
+  // --- sleep: Steam's own suspend preparation (cloud sync etc.) runs ~1 s before it asks logind to
+  // suspend, while Wi-Fi is still up. logind's PrepareForSleep is too late: NetworkManager drops Wi-Fi then.
+  const suspend = () => subscribe("suspend", cb => SteamClient.User.RegisterForPrepareForSystemSuspendProgress(cb), p =>
+    emit("suspend", { at_ms: Date.now(), progress: p ?? null }));
+
   // --- downloads: this device only (other PCs show up via Remote Downloads) ---
   const isLocal = clientId => String(clientId) === "0";
   const downloads = () => {
@@ -212,7 +217,7 @@
       timers.push(setTimeout(start, 2000));
       return;
     }
-    for (const section of [battery, downloads, apps, vr, stores]) {
+    for (const section of [battery, suspend, downloads, apps, vr, stores]) {
       try { section(); } catch (e) { fail(section.name, e); }
     }
   };

@@ -43,6 +43,9 @@ filesystems=xdg-config/systemd/user:create;
 [Session Bus Policy]
 com.steampowered.SteamOSManager1=talk
 org.freedesktop.systemd1=talk
+
+[System Bus Policy]
+org.freedesktop.login1=talk
 EOF
 
 flatpak build-export --arch="$ARCH" "$REPO" "$BUILD" >/dev/null
