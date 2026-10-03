@@ -146,6 +146,7 @@ If you do and you want to contribute, please let me know!
 ## Future
 
 - [ ] iOS Support
+- [ ] TLS Support (self signed + pinning + QR pairing)
 - [ ] PWA for the mobile client
 - [ ] Feed on the App notifying you of newly frame verified games (in your library)
 - [ ] Control Downloads (pause, resume, reorder)
