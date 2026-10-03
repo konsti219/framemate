@@ -37,6 +37,12 @@ impl Config {
         anyhow::ensure!((1..=120).contains(&fps), "FRAMEMATE_STREAM_FPS must be 1–120");
         let bitrate: u32 = env_or("FRAMEMATE_STREAM_BITRATE", "6000000").parse().context("FRAMEMATE_STREAM_BITRATE")?;
         anyhow::ensure!(bitrate > 0, "FRAMEMATE_STREAM_BITRATE must be > 0");
+        let crop: Vec<u32> = env_or("FRAMEMATE_STREAM_CROP", "0,0,0,0")
+            .split(',')
+            .map(|v| v.trim().parse())
+            .collect::<Result<_, _>>()
+            .context("FRAMEMATE_STREAM_CROP")?;
+        let crop: [u32; 4] = crop.try_into().map_err(|_| anyhow::anyhow!("FRAMEMATE_STREAM_CROP wants left,top,right,bottom"))?;
         Ok(Self {
             listen,
             cdp_url: env_or("FRAMEMATE_CDP", "http://127.0.0.1:8080"),
@@ -48,6 +54,7 @@ impl Config {
                 encoder_device: std::env::var("FRAMEMATE_STREAM_ENCODER").unwrap_or_else(|_| default_encoder().into()),
                 fps,
                 bitrate,
+                crop,
             },
             allow_remote: matches!(env_or("FRAMEMATE_ALLOW_REMOTE", "").as_str(), "1" | "true" | "yes"),
         })

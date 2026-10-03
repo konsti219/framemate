@@ -30,6 +30,9 @@ pub struct StreamConfig {
     pub encoder_device: String,
     pub fps: u32,
     pub bitrate: u32,
+    /// Pixels cut off the source as left, top, right, bottom. SteamVR's headset view can have a smeared
+    /// strip at the edge of what was rendered.
+    pub crop: [u32; 4],
 }
 
 pub struct Packet {
@@ -130,8 +133,11 @@ impl LiveStream {
 
     fn run(&self, tx: &broadcast::Sender<Arc<Packet>>, want_keyframe: &AtomicBool) -> Result<()> {
         let source = LoopbackCapture::open(&self.config.source_device)?;
-        let (width, height) = (source.width, source.height);
-        let frame_len = source.stride as usize * (height as usize).saturating_sub(1) + width as usize * 3;
+        let frame_len = source.stride as usize * (source.height as usize).saturating_sub(1) + source.width as usize * 3;
+        let [left, top, right, bottom] = self.config.crop;
+        ensure!(left + right < source.width && top + bottom < source.height, "crop leaves nothing of {}x{}", source.width, source.height);
+        let (width, height) = (source.width - left - right, source.height - top - bottom);
+        let offset = top as usize * source.stride as usize + left as usize * 3;
         let mut encoder = Encoder::open(&self.config.encoder_device, encoder::Config {
             width,
             height,
@@ -164,7 +170,7 @@ impl LiveStream {
                     encoder.force_keyframe();
                 }
                 let frame = RgbFrame {
-                    data: &source.buffers[index as usize].as_slice()[..len],
+                    data: &source.buffers[index as usize].as_slice()[offset..len],
                     width: width as usize,
                     height: height as usize,
                     stride: source.stride as usize,
