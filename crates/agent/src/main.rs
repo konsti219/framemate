@@ -1,4 +1,5 @@
 mod cdp;
+mod check;
 mod config;
 mod devices;
 mod encoder;
@@ -21,7 +22,8 @@ Without a command, runs the agent.
 commands:
   install-service    start the agent with the user session (systemd user unit)
   uninstall-service  remove that unit again
-  token              print the API token for the companion app";
+  token              print the API token for the companion app
+  check              check the running agent and print what the app needs";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -29,6 +31,7 @@ async fn main() -> anyhow::Result<()> {
         None => {}
         Some("install-service") => return service::install().await,
         Some("uninstall-service") => return service::uninstall().await,
+        Some("check") => return check::run().await,
         Some("token") => {
             println!("{}", config::format_token(&config::load_or_create_token()?));
             return Ok(());

@@ -48,7 +48,8 @@ pub async fn install() -> anyhow::Result<()> {
     // `flatpak run` moves the app into its own app-flatpak-*.scope, so `-u {UNIT}` shows
     // nothing; match the process name instead.
     println!("Logs: journalctl --user -f _COMM=framemate-agent");
-    Ok(())
+    println!();
+    crate::check::run().await
 }
 
 pub async fn uninstall() -> anyhow::Result<()> {

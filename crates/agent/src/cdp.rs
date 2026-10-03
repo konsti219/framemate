@@ -172,7 +172,7 @@ async fn find_target(authority: &str) -> anyhow::Result<String> {
 /// Minimal HTTP/1.1 GET; avoids pulling an HTTP client into the dependency tree.
 /// CEF's DevTools server drops HTTP/1.0 requests without answering and ignores
 /// `Connection: close`, so the body is read by Content-Length, not until EOF.
-async fn http_get(authority: &str, path: &str) -> anyhow::Result<Vec<u8>> {
+pub(crate) async fn http_get(authority: &str, path: &str) -> anyhow::Result<Vec<u8>> {
     tokio::time::timeout(Duration::from_secs(5), async {
         let mut stream = TcpStream::connect(authority)
             .await
@@ -194,6 +194,8 @@ async fn http_get(authority: &str, path: &str) -> anyhow::Result<Vec<u8>> {
         };
         let head = String::from_utf8_lossy(&response[..header_end]).into_owned();
         if !head.starts_with("HTTP/1.1 200") {
+            // Without the query: it may carry the API token (`check`), and errors get printed.
+            let path = path.split('?').next().unwrap_or_default();
             bail!("GET {path}: {}", head.lines().next().unwrap_or_default());
         }
         let length: usize = head
