@@ -15,7 +15,7 @@
 <Section title="Token">
   <p>
     FrameMate uses a token for communicating with your Steam Frame. This token is shown on installation or by running
-    <code>flatpak run dev.framemate.Agent token</code> on the headset with framemate-agent installed.
+    <code>flatpak run --user dev.framemate.Agent token</code> on the headset with framemate-agent installed.
     Write it down, you will need it to connect the app with the headset.
   </p>
 </Section>

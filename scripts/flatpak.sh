@@ -58,4 +58,4 @@ ssh() { /usr/bin/ssh "${SSH_OPTS[@]}" "$HOST" "$@"; }
 ssh "systemctl --user stop framemate-agent-dev 2>/dev/null; \
   flatpak install --user --reinstall --noninteractive -y /tmp/framemate-agent.flatpak && \
   rm /tmp/framemate-agent.flatpak && \
-  flatpak run $APP_ID install-service"   # also runs `check`, which prints the token
+  flatpak run --user $APP_ID install-service"   # also runs `check`, which prints the token

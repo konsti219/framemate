@@ -17,7 +17,16 @@ pub async fn install() -> anyhow::Result<()> {
     let exec = match std::env::var("FLATPAK_ID") {
         // `flatpak run` moves the app into its own scope outside this unit's cgroup, so
         // stopping the unit would only kill the launcher; --die-with-parent ties them together.
-        Ok(app_id) => format!("/usr/bin/flatpak run --die-with-parent --command=framemate-agent {app_id}"),
+        Ok(app_id) => {
+            let installation = std::fs::read_to_string("/.flatpak-info")
+                .ok()
+                .and_then(|info| installation_flag(&info));
+            if installation.is_none() {
+                eprintln!("warning: couldn't tell whether the agent is a --user or --system install");
+            }
+            let flag = installation.map(|f| format!("{f} ")).unwrap_or_default();
+            format!("/usr/bin/flatpak run {flag}--die-with-parent --command=framemate-agent {app_id}")
+        }
         Err(_) => std::env::current_exe()?.display().to_string(),
     };
     let unit = format!(
@@ -45,8 +54,7 @@ pub async fn install() -> anyhow::Result<()> {
     systemd.call("EnableUnitFiles", &(&[UNIT][..], false, true)).await?;
     systemd.call("RestartUnit", &(UNIT, "replace")).await?;
     println!("Installed and started {UNIT} ({}).", path.display());
-    // `flatpak run` moves the app into its own app-flatpak-*.scope, so `-u {UNIT}` shows
-    // nothing; match the process name instead.
+    // `-u {UNIT}` shows nothing: `flatpak run` moves the app into its own scope.
     println!("Logs: journalctl --user -f _COMM=framemate-agent");
     println!();
     crate::check::run().await
@@ -66,6 +74,19 @@ pub async fn uninstall() -> anyhow::Result<()> {
     systemd.call("Reload", &()).await?;
     println!("Removed {UNIT}.");
     Ok(())
+}
+
+/// `--user` or `--system`, from `app-path` in the sandbox's `/.flatpak-info`. Plain `flatpak run`
+/// fails when no system installation exists (fresh Frames, Flatpak 1.15.8).
+fn installation_flag(flatpak_info: &str) -> Option<&'static str> {
+    let path = flatpak_info.lines().find_map(|l| l.trim().strip_prefix("app-path="))?;
+    if path.starts_with("/var/lib/flatpak/") {
+        Some("--system")
+    } else if path.contains("/.local/share/flatpak/") {
+        Some("--user")
+    } else {
+        None // a custom installation (installations.d); plain `flatpak run` finds it
+    }
 }
 
 /// `~/.config/systemd/user/…` on the host. Deliberately not `$XDG_CONFIG_HOME`, which a

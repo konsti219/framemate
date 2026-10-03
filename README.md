@@ -60,7 +60,7 @@ and run:
 ```sh
 curl -LO https://github.com/nailuj05/framemate/releases/latest/download/framemate-agent.flatpak
 flatpak install --user -y framemate-agent.flatpak
-flatpak run dev.framemate.Agent install-service
+flatpak run --user dev.framemate.Agent install-service
 rm framemate-agent.flatpak
 ```
 
@@ -69,14 +69,14 @@ rm framemate-agent.flatpak
 - `install-service` registers a user service, so the agent starts with every boot – in
   Game Mode too – and restarts it right away. It then runs a self check and prints the
   address and access token (e.g. `MCK55-EGGCG`) you'll enter in the app.
-- `flatpak run dev.framemate.Agent check` repeats the self check (useful when the app can't
-  connect); `flatpak run dev.framemate.Agent token` prints just the token.
+- `flatpak run --user dev.framemate.Agent check` repeats the self check (useful when the app can't
+  connect); `flatpak run --user dev.framemate.Agent token` prints just the token.
 
 To **update**, download the new `framemate-agent.flatpak` and run the same three commands
 again. To **remove** it:
 
 ```sh
-flatpak run dev.framemate.Agent uninstall-service
+flatpak run --user dev.framemate.Agent uninstall-service
 flatpak uninstall --user dev.framemate.Agent
 ```
 
