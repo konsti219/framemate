@@ -34,7 +34,7 @@
 <div class="app">
   <header class="topbar">
     <img src="/favicon.svg" alt="" class="logo" />
-    <span class="title">FrameMate</span>
+    <a href="/" class="title">FrameMate</a>
     <span class="spacer"></span>
     {#if battery}
       <span class="battery">
@@ -43,6 +43,9 @@
       </span>
     {/if}
     <span class="status {agent.status}" title={agent.status}></span>
+    <a href="/help" class:active={true} aria-label="Help" >
+      <Icon name="help" size="20" />
+    </a>
   </header>
 
   <main>

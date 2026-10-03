@@ -18,6 +18,7 @@ glyph), width/height removed, `fill="currentColor"` added.
 | download.svg | `download` | 700 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-700@0.47.6/sharp/download.svg |
 | friends.svg | `group` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/group-fill.svg |
 | headset.svg | `head_mounted_device` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/head_mounted_device-fill.svg |
+| help.svg | `help` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/help-fill.svg |
 | home.svg | `home` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/home-fill.svg |
 | library.svg | `grid_view` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/grid_view-fill.svg |
 | performance.svg | `bolt` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/bolt-fill.svg |

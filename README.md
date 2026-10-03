@@ -136,9 +136,15 @@ bun run tauri dev                   # desktop window for UI work
 
 Authenticate with `?token=<token>` or `Authorization: Bearer <token>`.
 
+## iOS Support
+
+In theory this app should be able to be build for iOS aswell, I do not have the devices or infrastructure to build and test an iOS version. 
+If you do and you want to contribute, please let me know!
+
 ## Future
 
 - [ ] iOS Support
+- [ ] PWA for the mobile client
 - [ ] Feed on the App notifying you of newly frame verified games (in your library)
 - [ ] Control Downloads (pause, resume, reorder)
 - [ ] Turn off controller, headset, etc. 
@@ -148,6 +154,7 @@ Authenticate with `?token=<token>` or `Authorization: Bearer <token>`.
 - Icons: [Material Symbols](https://github.com/google/material-design-icons) (Apache-2.0); see
   [`app/src/lib/icons/LICENSES.md`](app/src/lib/icons/LICENSES.md).
 - Game artwork is loaded from Steam's public CDN.
+- FrameMate Icon made by me
 
-FrameMate is not affiliated with or endorsed by Valve. Steam and Steam Frame are trademarks of
+FrameMate is not affiliated with or endorsed by Valve. Steam, SteamOS and Steam Frame are trademarks of
 Valve Corporation.
