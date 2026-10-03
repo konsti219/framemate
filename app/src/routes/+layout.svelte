@@ -6,6 +6,8 @@
   import { agent } from "$lib/agent.svelte";
   import Battery from "$lib/components/Battery.svelte";
   import Icon from "$lib/components/Icon.svelte";
+  import UpdateNotice from "$lib/components/UpdateNotice.svelte";
+  import { updates } from "$lib/updates.svelte";
 
   let { children }: { children: Snippet } = $props();
 
@@ -21,6 +23,7 @@
 
   onMount(() => {
     agent.connect();
+    if (updates.autoCheck) updates.check();
     if (!agent.configured) goto("/settings");
     // Mobile WebViews drop sockets in the background; reconnect when we come back.
     const onVisible = () => {
@@ -51,6 +54,10 @@
   <main>
     {@render children()}
   </main>
+
+  {#if updates.available && !updates.dismissed && page.url.pathname !== "/settings"}
+    <UpdateNotice />
+  {/if}
 
   <nav class="tabs">
     {#each tabs as tab}
