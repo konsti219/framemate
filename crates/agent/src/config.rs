@@ -2,7 +2,7 @@
 //! the Flatpak (where XDG_CONFIG_HOME points into ~/.var/app/<id>/config).
 
 use std::io::Read;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::PathBuf;
 
@@ -14,6 +14,8 @@ pub struct Config {
     pub listen: SocketAddr,
     pub cdp_url: String,
     pub token: String,
+    /// Source networks allowed to connect; empty allows everyone.
+    pub allow: Vec<Cidr>,
     pub power_supply_dir: PathBuf,
     pub stream: StreamConfig,
     /// Accept clients from outside the local network (see access.rs).
@@ -39,6 +41,7 @@ impl Config {
             listen,
             cdp_url: env_or("FRAMEMATE_CDP", "http://127.0.0.1:8080"),
             token,
+            allow: parse_allow(&env_or("FRAMEMATE_ALLOW", ""))?,
             power_supply_dir: env_or("FRAMEMATE_POWER_SUPPLY_DIR", "/sys/class/power_supply").into(),
             stream: StreamConfig {
                 source_device: env_or("FRAMEMATE_STREAM_SOURCE", "/dev/video99").into(),
@@ -54,6 +57,64 @@ impl Config {
 /// videoN numbers depend on driver probe order; the udev symlink is stable.
 fn default_encoder() -> &'static str {
     if std::path::Path::new("/dev/video-enc0").exists() { "/dev/video-enc0" } else { "/dev/video23" }
+}
+
+/// `FRAMEMATE_ALLOW`: comma-separated networks (`100.64.0.0/10`, `fd7a::/16`, a bare address), plus the
+/// shortcuts `loopback` and `tailscale`.
+fn parse_allow(value: &str) -> anyhow::Result<Vec<Cidr>> {
+    let mut out = Vec::new();
+    for item in value.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+        let expanded: &[&str] = match item {
+            "loopback" => &["127.0.0.0/8", "::1/128"],
+            "tailscale" => &["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
+            other => &[other],
+        };
+        for net in expanded {
+            out.push(Cidr::parse(net).with_context(|| format!("FRAMEMATE_ALLOW: bad network {net:?}"))?);
+        }
+    }
+    Ok(out)
+}
+
+/// A network prefix such as `100.64.0.0/10`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cidr {
+    addr: IpAddr,
+    prefix: u8,
+}
+
+impl std::fmt::Display for Cidr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}/{}", self.addr, self.prefix)
+    }
+}
+
+impl Cidr {
+    pub fn parse(s: &str) -> Option<Self> {
+        let (addr, prefix) = match s.split_once('/') {
+            Some((a, p)) => (a.parse::<IpAddr>().ok()?, Some(p.parse::<u8>().ok()?)),
+            None => (s.parse::<IpAddr>().ok()?, None),
+        };
+        let max = if addr.is_ipv4() { 32 } else { 128 };
+        let prefix = prefix.unwrap_or(max);
+        (prefix <= max).then_some(Self { addr, prefix })
+    }
+
+    pub fn contains(&self, ip: IpAddr) -> bool {
+        // Dual-stack sockets report IPv4 clients as ::ffff:a.b.c.d
+        let ip = ip.to_canonical();
+        match (self.addr, ip) {
+            (IpAddr::V4(net), IpAddr::V4(ip)) => {
+                let mask = u32::MAX.checked_shl(32 - u32::from(self.prefix)).unwrap_or(0);
+                u32::from(net) & mask == u32::from(ip) & mask
+            }
+            (IpAddr::V6(net), IpAddr::V6(ip)) => {
+                let mask = u128::MAX.checked_shl(128 - u32::from(self.prefix)).unwrap_or(0);
+                u128::from(net) & mask == u128::from(ip) & mask
+            }
+            _ => false,
+        }
+    }
 }
 
 fn env_or(key: &str, default: &str) -> String {
@@ -159,5 +220,24 @@ mod tests {
         assert_eq!(format_token("ABCDEFGHJK"), "ABCDE-FGHJK");
         assert!(is_current_format("ABCDEFGHJK"));
         assert!(!is_current_format("cbad37e74cbd250279126bbbca61a0a9"));
+    }
+
+    #[test]
+    fn allow_list_matches_networks() {
+        let allow = parse_allow("loopback, tailscale, 192.168.0.13").unwrap();
+        let ok = |s: &str| allow.iter().any(|c| c.contains(s.parse().unwrap()));
+        assert!(ok("127.0.0.1"));
+        assert!(ok("::1"));
+        assert!(ok("100.64.0.13"));
+        assert!(ok("100.127.255.254"));
+        assert!(ok("::ffff:100.64.0.13"));
+        assert!(ok("fd7a:115c:a1e0::353a:dc01"));
+        assert!(ok("192.168.0.13"));
+        assert!(!ok("192.168.0.14"));
+        assert!(!ok("100.128.0.1"));
+        assert!(!ok("10.0.0.1"));
+        assert!(parse_allow("").unwrap().is_empty());
+        assert!(parse_allow("10.0.0.0/33").is_err());
+        assert!(Cidr::parse("0.0.0.0/0").unwrap().contains("8.8.8.8".parse().unwrap()));
     }
 }

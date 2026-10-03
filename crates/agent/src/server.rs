@@ -19,13 +19,14 @@ use std::time::Duration;
 use anyhow::Context;
 use axum::Router;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::{Query, State};
+use axum::extract::{ConnectInfo, Query, Request, State};
 use axum::http::{HeaderMap, StatusCode, header};
+use axum::middleware::{self, Next};
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::get;
 use socket2::{Domain, Protocol, Socket, Type};
 
-use crate::config::Config;
+use crate::config::{Cidr, Config};
 use crate::fmp4;
 use crate::hub::Hub;
 use crate::stream::LiveStream;
@@ -50,6 +51,7 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
         .route("/favicon.svg", get(|| async { asset("image/svg+xml", include_bytes!("../../../assets/framemate-black.svg")) }))
         .route("/healthz", get(|| async { "ok" }))
         .layer(axum::middleware::from_fn_with_state(config.allow_remote, crate::access::local_only))
+        .layer(middleware::from_fn_with_state(Arc::<[Cidr]>::from(config.allow.clone()), allow_sources))
         .with_state(AppState {
             hub,
             token: config.token.as_str().into(),
@@ -71,6 +73,10 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
         let token = crate::config::format_token(&config.token);
         println!("Dashboard: http://localhost:{}/?token={token}", config.listen.port());
     }
+    if !config.allow.is_empty() {
+        let nets: Vec<String> = config.allow.iter().map(ToString::to_string).collect();
+        tracing::info!("accepting connections only from {}", nets.join(", "));
+    }
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
         .with_graceful_shutdown(shutdown_signal())
         .await?;
@@ -91,6 +97,20 @@ fn listen(addr: SocketAddr) -> anyhow::Result<tokio::net::TcpListener> {
     socket.bind(&addr.into()).with_context(|| format!("binding {addr}"))?;
     socket.listen(1024)?;
     Ok(tokio::net::TcpListener::from_std(socket.into())?)
+}
+
+/// Rejects clients outside `FRAMEMATE_ALLOW` before anything else, including the token check.
+async fn allow_sources(
+    State(allow): State<Arc<[Cidr]>>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if allow.is_empty() || allow.iter().any(|net| net.contains(peer.ip())) {
+        next.run(request).await
+    } else {
+        StatusCode::FORBIDDEN.into_response()
+    }
 }
 
 fn asset(content_type: &'static str, body: &'static [u8]) -> impl IntoResponse {
