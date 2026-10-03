@@ -72,7 +72,7 @@
       <div class="controllers">
         {#each controllers as c (c.path)}
           <div class="controller">
-            <Icon name="controller" size={28} />
+            <Icon name={c.model?.endsWith("_Right") ? "controller-right" : "controller-left"} size={28} />
             <div>
               <div>{controllerName(c.model)}</div>
               <div class="muted small">

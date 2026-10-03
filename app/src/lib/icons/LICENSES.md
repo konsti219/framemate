@@ -14,7 +14,6 @@ glyph), width/height removed, `fill="currentColor"` added.
 | back.svg | `arrow_back` | 700 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-700@0.47.6/sharp/arrow_back.svg |
 | bell-badge.svg | `notifications_unread` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/notifications_unread-fill.svg |
 | cast.svg | `cast` | 700 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-700@0.47.6/sharp/cast.svg |
-| controller.svg | `stadia_controller` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/stadia_controller-fill.svg |
 | download.svg | `download` | 700 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-700@0.47.6/sharp/download.svg |
 | friends.svg | `group` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/group-fill.svg |
 | headset.svg | `head_mounted_device` (fill) | 400 | https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.6/sharp/head_mounted_device-fill.svg |

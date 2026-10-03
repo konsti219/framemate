@@ -185,6 +185,7 @@ AI was also used for exploring how the Video Stream for Mirroring could be acces
 
 - Icons: [Material Symbols](https://github.com/google/material-design-icons) (Apache-2.0); see
   [`app/src/lib/icons/LICENSES.md`](app/src/lib/icons/LICENSES.md).
+- Steam Frame Controller Icons: [Kenney Input Prompts](https://kenney.nl/assets/input-prompts) (CC0)
 - Game artwork is loaded from Steam's public CDN.
 - FrameMate Icon made by me
 
