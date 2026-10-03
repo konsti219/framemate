@@ -1,7 +1,7 @@
 //! Live H.264 stream of the headset view, shared by all viewers.
 //!
 //! SteamVR's `steamvr-v4l2cam` renders `IVRHeadsetView` into the v4l2loopback device
-//! `/dev/video99` (1920×1080 RGB3, ~90 fps while the headset is active) — but only
+//! `/dev/video99` (1920×1080 RGB3, ~90 fps while the headset is active), but only
 //! while someone has the device open. The first viewer starts one capture+encode
 //! thread; it stops when the last viewer leaves, which also lets v4l2cam go idle.
 //!

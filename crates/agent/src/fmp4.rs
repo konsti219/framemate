@@ -43,7 +43,7 @@ pub fn codec_string(sps: &[u8]) -> String {
     format!("avc1.{:02x}{:02x}{:02x}", sps[1], sps[2], sps[3])
 }
 
-/// Annex B → length-prefixed sample; parameter sets and AUDs live in the init segment.
+/// Annex B -> length-prefixed sample; parameter sets and AUDs live in the init segment.
 pub fn to_sample(au: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(au.len() + 16);
     for nal in nal_units(au).filter(|n| !matches!(nal_type(n), 7..=9)) {

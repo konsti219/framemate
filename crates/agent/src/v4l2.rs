@@ -1,5 +1,4 @@
-//! Minimal V4L2 ioctl plumbing (aarch64/64-bit layouts), shared by the hardware
-//! encoder and the loopback capture. Pure Rust on purpose: keeps the static build.
+//! Minimal V4L2 ioctl plumbing (aarch64/64-bit layouts), shared by the hardware encoder and the loopback capture
 
 use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
