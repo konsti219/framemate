@@ -1,11 +1,6 @@
-//! Connects to Steam's CEF remote debugging endpoint (Steam runs with
-//! `-cef-enable-debugging`, listening on 127.0.0.1:8080), attaches to the
-//! `SharedJSContext` target and injects `shim.js`. The shim pushes
-//! `{topic, data}` JSON through the `__framemateEmit` CDP binding.
-//!
-//! Steam UI reloads create a new execution context; the shim is re-injected on
-//! every `Runtime.executionContextCreated`. Steam restarts drop the socket and
-//! we reconnect with backoff.
+//! Steam CEF DevTools client (127.0.0.1:8080): attaches to `SharedJSContext`, injects `shim.js`
+//! on every `executionContextCreated` (UI reloads) and receives `{topic, data}` through the
+//! `__framemateEmit` binding. Reconnects with backoff when Steam restarts.
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -24,8 +19,7 @@ const TARGET_TITLE: &str = "SharedJSContext";
 const BINDING: &str = "__framemateEmit";
 const SHIM: &str = include_str!("shim.js");
 const MAX_BACKOFF: Duration = Duration::from_secs(30);
-/// The shim polls every few seconds, so silence this long means Steam may be hung: send a
-/// trivial evaluate, and give up on the session if that gets no answer either.
+/// The shim polls every few seconds; after this much silence, ping once, then reconnect.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub async fn run(hub: Arc<Hub>, cdp_url: String) {
@@ -152,7 +146,6 @@ fn handle_emit(hub: &Hub, payload: &str, devices: &mut DeviceMemory) {
     });
 }
 
-/// Returns the WebSocket debugger URL of the SharedJSContext target.
 async fn find_target(authority: &str) -> anyhow::Result<String> {
     let body = http_get(authority, "/json").await?;
     let targets: Vec<Value> = serde_json::from_slice(&body).context("parsing /json")?;
@@ -169,9 +162,8 @@ async fn find_target(authority: &str) -> anyhow::Result<String> {
     Ok(format!("ws://{authority}{path}"))
 }
 
-/// Minimal HTTP/1.1 GET; avoids pulling an HTTP client into the dependency tree.
-/// CEF's DevTools server drops HTTP/1.0 requests without answering and ignores
-/// `Connection: close`, so the body is read by Content-Length, not until EOF.
+/// Minimal HTTP/1.1 GET (no HTTP client dependency). CEF ignores HTTP/1.0 requests and
+/// `Connection: close`, so the body is read by Content-Length.
 pub(crate) async fn http_get(authority: &str, path: &str) -> anyhow::Result<Vec<u8>> {
     tokio::time::timeout(Duration::from_secs(5), async {
         let mut stream = TcpStream::connect(authority)
@@ -194,7 +186,7 @@ pub(crate) async fn http_get(authority: &str, path: &str) -> anyhow::Result<Vec<
         };
         let head = String::from_utf8_lossy(&response[..header_end]).into_owned();
         if !head.starts_with("HTTP/1.1 200") {
-            // Without the query: it may carry the API token (`check`), and errors get printed.
+            // Drop the query: it may carry the token.
             let path = path.split('?').next().unwrap_or_default();
             bail!("GET {path}: {}", head.lines().next().unwrap_or_default());
         }

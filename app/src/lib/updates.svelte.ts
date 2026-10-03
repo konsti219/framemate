@@ -7,7 +7,7 @@ const LATEST_URL = "https://api.github.com/repos/nailuj05/framemate/releases/lat
 const STORAGE_KEY = "framemate.updates";
 const TIMEOUT_MS = 10_000;
 
-/** The app's own version; tauri.conf.json is also what the APK's versionName comes from. */
+/** Same source as the APK's versionName. */
 export const APP_VERSION: string = tauriConf.version;
 
 export interface Release {
@@ -38,7 +38,6 @@ function loadAutoCheck(): boolean {
 }
 
 class Updates {
-  /** Check on app start (Settings toggle). */
   autoCheck = $state(loadAutoCheck());
   latest = $state<Release | null>(null);
   checking = $state(false);
@@ -47,7 +46,7 @@ class Updates {
   dismissed = $state(false);
 
   appOutdated = $derived(!!this.latest && isNewer(this.latest.version, APP_VERSION));
-  /** Only known while connected (the agent reports its version in the state). */
+  /** Only known while connected. */
   agentOutdated = $derived(
     !!this.latest && !!agent.state && isNewer(this.latest.version, agent.state.agent.version),
   );

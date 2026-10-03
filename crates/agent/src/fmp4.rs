@@ -1,7 +1,5 @@
-//! Minimal fragmented-MP4 writer for one H.264 video track, as consumed by browser
-//! Media Source Extensions: one init segment (ftyp+moov), then one moof+mdat per frame.
+//! Fragmented MP4 for MSE, one H.264 track: init segment (ftyp+moov), then moof+mdat per frame.
 
-/// Timescale of the video track (90 kHz, the usual for video).
 pub const TIMESCALE: u32 = 90_000;
 
 /// Splits an Annex B access unit into NAL units (without start codes).

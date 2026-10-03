@@ -1,6 +1,5 @@
-//! Runtime configuration from environment variables. Paths follow XDG so the same
-//! binary works on the host and inside a Flatpak sandbox (where XDG_CONFIG_HOME
-//! points into ~/.var/app/<id>/config).
+//! Configuration from environment variables. XDG paths, so it works on the host and inside
+//! the Flatpak (where XDG_CONFIG_HOME points into ~/.var/app/<id>/config).
 
 use std::io::Read;
 use std::net::SocketAddr;
@@ -13,7 +12,6 @@ use crate::stream::StreamConfig;
 
 pub struct Config {
     pub listen: SocketAddr,
-    /// Base URL of Steam's CEF remote debugging HTTP endpoint.
     pub cdp_url: String,
     pub token: String,
     pub power_supply_dir: PathBuf,
@@ -22,8 +20,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
-        // IPv6 wildcard: the socket is made dual-stack in server.rs, so this covers
-        // IPv4 clients too. `frame.local` resolves to an AAAA record on many networks.
+        // Dual-stack (see server.rs), so IPv4 clients work too.
         let listen = env_or("FRAMEMATE_LISTEN", "[::]:7380")
             .parse()
             .context("FRAMEMATE_LISTEN must be host:port")?;
@@ -43,12 +40,17 @@ impl Config {
             power_supply_dir: env_or("FRAMEMATE_POWER_SUPPLY_DIR", "/sys/class/power_supply").into(),
             stream: StreamConfig {
                 source_device: env_or("FRAMEMATE_STREAM_SOURCE", "/dev/video99").into(),
-                encoder_device: env_or("FRAMEMATE_STREAM_ENCODER", "/dev/video23"),
+                encoder_device: std::env::var("FRAMEMATE_STREAM_ENCODER").unwrap_or_else(|_| default_encoder().into()),
                 fps,
                 bitrate,
             },
         })
     }
+}
+
+/// videoN numbers depend on driver probe order; the udev symlink is stable.
+fn default_encoder() -> &'static str {
+    if std::path::Path::new("/dev/video-enc0").exists() { "/dev/video-enc0" } else { "/dev/video23" }
 }
 
 fn env_or(key: &str, default: &str) -> String {
@@ -59,7 +61,6 @@ fn config_dir() -> anyhow::Result<PathBuf> {
     xdg_dir("XDG_CONFIG_HOME", ".config")
 }
 
-/// Persistent runtime state (e.g. remembered VR devices).
 pub fn state_dir() -> anyhow::Result<PathBuf> {
     xdg_dir("XDG_STATE_HOME", ".local/state")
 }
@@ -100,8 +101,7 @@ fn is_current_format(token: &str) -> bool {
     token.len() == TOKEN_LEN && token.bytes().all(|b| TOKEN_ALPHABET.contains(&b))
 }
 
-/// The API token lives in `$XDG_CONFIG_HOME/framemate/token` and is created on first run.
-/// Tokens in an older format (32 hex chars) are replaced by a short one.
+/// `$XDG_CONFIG_HOME/framemate/token`, created on first run; other formats are replaced.
 pub fn load_or_create_token() -> anyhow::Result<String> {
     let path = config_dir()?.join("token");
     if let Ok(token) = std::fs::read_to_string(&path) {

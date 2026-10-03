@@ -15,9 +15,8 @@
 <video autoplay muted playsinline></video>
 <div id="status">connecting…</div>
 <script>
-// Headset view over /api/stream/ws: a JSON header with the codec string, then an fMP4
-// init segment, then one moof+mdat per frame, fed into Media Source Extensions.
-// (WebCodecs would be simpler but needs a secure context, which http://frame.local isn't.)
+// /api/stream/ws: JSON {codec}, fMP4 init segment, then moof+mdat per frame → MSE.
+// (WebCodecs needs a secure context, which http://frame.local isn't.)
 const token = new URLSearchParams(location.search).get("token") ?? "";
 const video = document.querySelector("video");
 const status = document.getElementById("status");
@@ -62,9 +61,8 @@ function connect() {
   };
 }
 
-// MSE buffers by default, which adds latency over time. Catch up by playing slightly
-// faster; only seek when far behind, because every seek makes the decoder restart
-// from the previous keyframe (seeking on every frame showed ~3 fps).
+// Catch up by playing faster; seeking restarts decoding at the last keyframe (~3 fps if
+// done every frame), so only seek when far behind.
 function keepLive(buffer) {
   if (buffer.updating || !buffer.buffered.length) return;
   const start = buffer.buffered.start(0);

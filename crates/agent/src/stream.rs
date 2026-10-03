@@ -1,13 +1,8 @@
 //! Live H.264 stream of the headset view, shared by all viewers.
 //!
-//! SteamVR's `steamvr-v4l2cam` renders `IVRHeadsetView` into the v4l2loopback device
-//! `/dev/video99` (1920×1080 RGB3, ~90 fps while the headset is active), but only
-//! while someone has the device open. The first viewer starts one capture+encode
-//! thread; it stops when the last viewer leaves, which also lets v4l2cam go idle.
-//!
-//! Frames are captured via mmap (no read() copy), paced down to the configured fps,
-//! encoded in hardware (see encoder.rs) and broadcast as Annex B access units.
-//! Flatpak: needs `--device=all` for /dev/video*.
+//! SteamVR's v4l2cam only renders into `/dev/video99` (1920×1080 RGB3, ~90 fps) while the
+//! device is open, so capture runs only while someone watches: the first viewer starts the
+//! thread, it stops when the last one leaves.
 
 use std::fs::{File, OpenOptions};
 use std::os::fd::AsRawFd;
@@ -37,7 +32,6 @@ pub struct StreamConfig {
     pub bitrate: u32,
 }
 
-/// One encoded frame.
 pub struct Packet {
     /// Annex B access unit; keyframes carry SPS/PPS.
     pub data: Vec<u8>,
@@ -86,7 +80,6 @@ impl LiveStream {
         running.tx.subscribe()
     }
 
-    /// Asks for a keyframe, e.g. after a viewer fell behind.
     pub fn request_keyframe(&self) {
         if let Some(running) = &*self.running.lock().unwrap() {
             running.want_keyframe.store(true, Ordering::Relaxed);
@@ -221,7 +214,6 @@ impl Drop for StopGuard<'_> {
     }
 }
 
-/// mmap streaming capture from the v4l2loopback device.
 struct LoopbackCapture {
     buffers: Vec<Mapping>,
     file: File,

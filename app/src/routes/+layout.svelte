@@ -112,7 +112,7 @@
   .status.unauthorized {
     background: var(--red);
   }
-  /* Flex, so the icon isn't placed on a text line (line-height would shift it off-center). */
+  /* Flex: on a text line, line-height pushes the icon off-center. */
   .help {
     display: flex;
   }

@@ -1,10 +1,5 @@
-//! `install-service` / `uninstall-service`: a systemd **user** unit that starts the agent
-//! with the session. Flatpaks can't autostart in Game Mode (XDG autostart only runs in
-//! Plasma), so the unit runs `flatpak run …` itself. Talks to the user systemd over
-//! D-Bus, which works from inside the sandbox.
-//!
-//! Flatpak permissions: `--filesystem=xdg-config/systemd/user:create`,
-//! `--talk-name=org.freedesktop.systemd1`.
+//! `install-service` / `uninstall-service`: a systemd user unit that runs `flatpak run …`, since
+//! Flatpaks can't autostart in Game Mode (XDG autostart only runs in Plasma).
 
 use std::path::PathBuf;
 

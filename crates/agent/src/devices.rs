@@ -1,8 +1,7 @@
-//! Remembers VR devices across SteamVR / Frame restarts. SteamVR only lists a controller
-//! once it has connected since SteamVR started, so after a reboot sleeping controllers
-//! would vanish. Their last known state is kept in `$XDG_STATE_HOME/framemate/devices.json`
-//! and merged into the `vr_devices` topic as `connected: false, remembered: true`.
-//! Devices are never forgotten (controller pairs rarely change); delete the file to reset.
+//! Remembers VR devices across restarts: SteamVR only lists a controller once it has connected
+//! since SteamVR started, so sleeping controllers would vanish after a reboot. Missing ones are
+//! merged into `vr_devices` as `connected: false, remembered: true`. Never forgotten; delete
+//! `$XDG_STATE_HOME/framemate/devices.json` to reset.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
@@ -16,8 +15,7 @@ const LAST_SEEN_SAVE_INTERVAL_MS: u64 = 5 * 60 * 1000;
 
 pub struct DeviceMemory {
     file: Option<PathBuf>,
-    /// Keyed by serial. Devices whose serial couldn't be read are passed through but not
-    /// remembered: keying them by path would leave a phantom duplicate once the serial shows up.
+    /// Keyed by serial; devices without one aren't remembered (no phantom duplicates).
     known: BTreeMap<String, Value>,
     last_save_ms: u64,
 }
@@ -33,7 +31,6 @@ impl DeviceMemory {
         Self { file, known, last_save_ms: now_ms() }
     }
 
-    /// Merges a live `vr_devices` list with remembered devices and persists changes.
     pub fn merge(&mut self, live: Value) -> Value {
         let Value::Array(live) = live else { return live };
         let now = now_ms();
@@ -80,8 +77,7 @@ impl DeviceMemory {
 
     fn save(&mut self, now: u64) {
         let Some(file) = &self.file else { return };
-        // Write + rename, so a crash mid-write can't leave a truncated file behind
-        // (which would load as empty and lose every remembered device).
+        // Write + rename: a truncated file would load as empty.
         let tmp = file.with_extension("json.tmp");
         let result = std::fs::create_dir_all(file.parent().unwrap())
             .and_then(|()| std::fs::write(&tmp, serde_json::to_vec_pretty(&self.known).unwrap()))

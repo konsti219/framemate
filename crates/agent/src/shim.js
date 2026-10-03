@@ -1,9 +1,6 @@
-// Injected by framemate-agent into Steam's SharedJSContext (see cdp.rs).
-// Subscribes to SteamClient events and polls UI stores, then reports one
-// normalized snapshot per topic via the CDP binding `__framemateEmit`.
-// Everything here is undocumented Steam internals: guard every access, and
-// report failures as {topic: "error"} instead of throwing.
-// Must be idempotent: it is re-evaluated on every reconnect.
+// Injected into Steam's SharedJSContext (cdp.rs); reports one snapshot per topic via
+// `__framemateEmit`. Undocumented Steam internals: guard every access, report failures as
+// {topic: "error"}. Must be idempotent: it is re-evaluated on every reconnect.
 (() => {
   const W = window;
   try { W.__framemate?.dispose?.(); } catch {}
@@ -46,7 +43,7 @@
     try { return W.appStore.GetAppOverviewByAppID(Number(appid))?.display_name ?? null; } catch { return null; }
   };
 
-  // --- battery (Steam's view; the agent also reads sysfs directly) ---
+  // --- battery ---
   const battery = () => subscribe("battery", cb => SteamClient.System.RegisterForBatteryStateChanges(cb), s =>
     emit("battery", {
       has_battery: s.bHasBattery,
@@ -56,9 +53,7 @@
       battery_state: s.eBatteryState,
     }));
 
-  // --- downloads: this device only ---
-  // Steam groups downloads per client; with Remote Downloads the other PCs on the
-  // account show up too (remote_client_id != "0"). Only the Frame's own are reported.
+  // --- downloads: this device only (other PCs show up via Remote Downloads) ---
   const isLocal = clientId => String(clientId) === "0";
   const downloads = () => {
     subscribe("downloads", cb => SteamClient.Downloads.RegisterForDownloadItems(cb), (_flag, clients) => {
@@ -77,8 +72,7 @@
         target_buildid: i.target_buildid,
       })));
     });
-    // Fires about once per second while something downloads. It describes a single
-    // client's transfer, which may be a remote one; report those as idle.
+    // ~1 Hz while downloading; may describe a remote client's transfer, reported as idle.
     subscribe("download_overview", cb => SteamClient.Downloads.RegisterForDownloadOverview(cb), o => {
       if (!isLocal(o.remote_client_id)) {
         emit("download_overview", { appid: null });
@@ -114,9 +108,8 @@
     });
   };
 
-  // --- VR: headset + controllers via OpenVR device properties ---
-  // Property ids from openvr.h: 1001 ModelNumber, 1002 SerialNumber,
-  // 1011 DeviceIsCharging, 1012 DeviceBatteryPercentage, 1029 DeviceClass.
+  // --- VR devices. openvr.h property ids: 1001 ModelNumber, 1002 SerialNumber,
+  // 1011 DeviceIsCharging, 1012 DeviceBatteryPercentage, 1029 DeviceClass ---
   let vrPaths = [];
   const vrDevice = async path => {
     const P = SteamClient.OpenVR.DeviceProperties;
@@ -153,7 +146,7 @@
     });
   };
 
-  // --- network, perf, system, user (polled store reads) ---
+  // --- network, perf, system, user (polled) ---
   const stores = () => {
     poll("network", 10000, () => {
       const n = W.SystemNetworkStore, d = W.SystemPerfStore?.msgDiagnosticInfo;

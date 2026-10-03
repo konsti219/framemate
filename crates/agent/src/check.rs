@@ -1,7 +1,5 @@
-//! `check`: asks the running agent whether everything works, and prints what the companion
-//! app needs. `install-service` runs it right after (re)starting the service; run it by hand
-//! when the app can't connect. Runs in the same sandbox as the service, so device and D-Bus
-//! access are checked with the service's permissions.
+//! `check`: self check of the running agent, then prints what the app needs. Also run by
+//! `install-service`. Same sandbox as the service, so permissions are checked too.
 
 use std::ffi::CString;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
@@ -17,7 +15,6 @@ const STARTUP_TIMEOUT: Duration = Duration::from_secs(15);
 /// Steam data follows shortly after the agent is up (the shim injects, then reports).
 const STEAM_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Returns an error if the agent can't be reached or rejects its own token.
 pub async fn run() -> anyhow::Result<()> {
     let config = Config::from_env()?;
     let addr = match config.listen.ip() {
@@ -79,7 +76,7 @@ pub async fn run() -> anyhow::Result<()> {
         warn(&format!("SteamOS performance settings: {error}"));
     }
 
-    // only check access without wakeing SteamVRs v4l2cam
+    // Only check access: opening the source would wake SteamVR's v4l2cam.
     let devices = [
         (config.stream.source_device.as_path(), "headset view"),
         (Path::new(&config.stream.encoder_device), "H.264 encoder"),

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { agent } from "$lib/agent.svelte";
+  import { agent, localNetworkBlocked } from "$lib/agent.svelte";
   import Row from "$lib/components/Row.svelte";
   import Section from "$lib/components/Section.svelte";
   import { openExternal } from "$lib/external";
@@ -13,7 +13,9 @@
       unconfigured: "Enter host and token",
       connecting: "Connecting…",
       connected: `Connected to ${agent.state?.agent.hostname ?? agent.authority}`,
-      offline: `Can't reach ${agent.authority}`,
+      offline: agent.settings.host.includes(".local")
+        ? `Can't reach ${agent.authority}. Try the Frame's IP address instead.`
+        : `Can't reach ${agent.authority}`,
       unauthorized: "Wrong token. Check it on the Frame (see below).",
     }[agent.status],
   );
@@ -35,8 +37,17 @@
       <input bind:value={token} placeholder="XXXXX-XXXXX" autocapitalize="characters" autocorrect="off" spellcheck="false" />
     </label>
     <button class="button" type="submit">Save &amp; connect</button>
-    <p class="hint">Show the token on the Frame with <code>flatpak run dev.framemate.Agent token</code>.</p>
-    <p class="status {agent.status}">{statusText}</p>
+    <p class="hint">Show the token on the Frame with <code>flatpak run --user dev.framemate.Agent token</code>.</p>
+    {#if agent.status === "offline" && localNetworkBlocked()}
+      <p class="status offline">
+        Android blocks FrameMate from your local network. Allow <b>Nearby devices</b> in the app's permissions.
+      </p>
+      <button class="button secondary" type="button" onclick={() => window.FrameMateAndroid?.openAppSettings?.()}>
+        Open app settings
+      </button>
+    {:else}
+      <p class="status {agent.status}">{statusText}</p>
+    {/if}
   </form>
 </Section>
 

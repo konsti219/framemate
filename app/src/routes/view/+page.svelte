@@ -1,8 +1,6 @@
 <script lang="ts">
-  // Live headset view. Same protocol as the agent's /stream page: a JSON header with the
-  // codec string, an fMP4 init segment, then one moof+mdat per frame, fed into MSE.
-  // The agent only captures while a viewer is connected, so leaving this tab stops it.
-  // The app is portrait-only; fullscreen switches to landscape (natively on Android).
+  // Same protocol as the agent's /stream page (JSON {codec}, fMP4 init, moof+mdat → MSE).
+  // The agent only captures while someone watches, so leaving this page stops it.
   import { onDestroy, onMount } from "svelte";
   import { pushState } from "$app/navigation";
   import { page } from "$app/state";
@@ -93,8 +91,7 @@
     };
   }
 
-  // Catch up by playing slightly faster; seeking on every frame restarts decoding at the
-  // last keyframe and drops the picture to a few fps.
+  // Catch up by playing faster; seeking restarts decoding at the last keyframe.
   function keepLive(buffer: SourceBuffer) {
     if (buffer.updating || !buffer.buffered.length) return;
     const start = buffer.buffered.start(0);

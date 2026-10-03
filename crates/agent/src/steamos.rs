@@ -1,5 +1,4 @@
-//! Read-only view of steamos-manager's session-bus properties
-//! (performance profile, CPU/GPU tuning). Flatpak: --talk-name=com.steampowered.SteamOSManager1
+//! Read-only view of steamos-manager's session-bus properties (performance profile, CPU/GPU).
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

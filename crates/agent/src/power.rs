@@ -1,5 +1,4 @@
-//! Battery and charger data from the kernel's power_supply class. Works without
-//! Steam running and is readable from inside a Flatpak sandbox.
+//! Battery and charger data from the kernel's power_supply class (works without Steam).
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

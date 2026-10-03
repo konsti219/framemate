@@ -1,6 +1,4 @@
-// Shape of the agent's `/api/ws` / `/api/state` JSON (see crates/agent/src/hub.rs and
-// shim.js). Steam topics are loosely typed on the agent side; every field may be
-// missing when Steam isn't connected or an API changed, hence the many optionals.
+// Agent JSON (hub.rs, shim.js). Steam fields can be missing at any time, hence the optionals.
 
 export interface AgentState {
   agent: { version: string; hostname: string; started_at_ms: number; updated_at_ms: number };

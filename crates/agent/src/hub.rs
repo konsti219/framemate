@@ -30,9 +30,7 @@ pub struct AgentInfo {
     pub updated_at_ms: u64,
 }
 
-/// Data from the Steam client, as reported by the injected shim (see `shim.js`).
-/// Topics are kept as loose JSON on purpose: the shim already normalizes them and
-/// the underlying Steam APIs are undocumented and change between client updates.
+/// Reported by `shim.js`. Topics stay loose JSON: the Steam APIs behind them change often.
 #[derive(Debug, Default, Serialize)]
 pub struct SteamState {
     pub connected: bool,

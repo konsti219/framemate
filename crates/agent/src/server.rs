@@ -55,7 +55,14 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
             stream,
         });
 
-    let listener = listen(config.listen)?;
+    let listener = match listen(config.listen) {
+        // IPv6 can be disabled (ipv6.disable=1); keep serving IPv4 then.
+        Err(e) if config.listen.is_ipv6() && config.listen.ip().is_unspecified() => {
+            tracing::warn!("{e:#}; falling back to IPv4 only");
+            listen(SocketAddr::from(([0, 0, 0, 0], config.listen.port())))?
+        }
+        result => result?,
+    };
     let token = crate::config::format_token(&config.token);
     tracing::info!("listening on http://{}/?token={token} (token: {token})", config.listen);
     axum::serve(listener, app)
@@ -64,13 +71,8 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
     Ok(())
 }
 
-/// Binds the listener, accepting IPv4 *and* IPv6 when given an IPv6 wildcard address.
-///
-/// `frame.local` resolves to an AAAA record on many networks (and Chrome prefers it), while
-/// the app is usually handed an IPv4 address, so the agent has to answer on both families.
-/// A dual-stack socket needs `IPV6_V6ONLY` cleared before `bind`, which
-/// `TcpListener::bind` can't express; leaving it to the `net.ipv6.bindv6only` sysctl would
-/// silently drop IPv4 on a host that has it set.
+/// Dual-stack for an IPv6 wildcard (`frame.local` often resolves to IPv6). `IPV6_V6ONLY` has to
+/// be cleared before `bind`, which `TcpListener::bind` can't do.
 fn listen(addr: SocketAddr) -> anyhow::Result<tokio::net::TcpListener> {
     let socket = Socket::new(Domain::for_address(addr), Type::STREAM, Some(Protocol::TCP))
         .context("creating the listening socket")?;
@@ -107,8 +109,7 @@ async fn state(
     headers: HeaderMap,
     Query(query): Query<HashMap<String, String>>,
 ) -> Response {
-    // CORS: the app's WebView (another origin) reads the status to tell a wrong token from
-    // an unreachable agent. Harmless, the token is still required.
+    // CORS so the app can read the 401 (wrong token vs. unreachable).
     let cors = [(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")];
     if !authorized(&app, &headers, &query) {
         return (StatusCode::UNAUTHORIZED, cors).into_response();

@@ -1,5 +1,4 @@
-// Connection to the framemate-agent on the Frame. Holds the latest state pushed over
-// `/api/ws` and reconnects on its own. Settings live in localStorage.
+// Connection to the agent: latest state from `/api/ws`, reconnects on its own.
 
 import type { AgentState } from "./types";
 
@@ -36,13 +35,14 @@ class Agent {
     return this.settings.host.trim() !== "" && this.settings.token.trim() !== "";
   }
 
-  /** `host:port` of the agent. */
   get authority() {
     const host = this.settings.host.trim();
+    if (host.startsWith("[")) return /\]:\d+$/.test(host) ? host : `${host}:${DEFAULT_PORT}`;
+    // A bare IPv6 address needs brackets before a port can follow.
+    if ((host.match(/:/g) ?? []).length > 1) return `[${host}]:${DEFAULT_PORT}`;
     return /:\d+$/.test(host) ? host : `${host}:${DEFAULT_PORT}`;
   }
 
-  /** WebSocket URL for an agent endpoint, with the token attached. */
   socketUrl(path: string) {
     return `ws://${this.authority}${path}?token=${encodeURIComponent(this.settings.token.trim())}`;
   }
@@ -87,7 +87,7 @@ class Agent {
     };
   }
 
-  /** Tells a wrong token apart from an unreachable agent (needs CORS on /api/state). */
+  /** Wrong token (401) vs. unreachable; needs CORS on /api/state. */
   async #probe(): Promise<ConnectionStatus> {
     try {
       const url = `http://${this.authority}/api/state?token=${encodeURIComponent(this.settings.token.trim())}`;
@@ -108,3 +108,8 @@ class Agent {
 }
 
 export const agent = new Agent();
+
+/** Android 17+ blocks the LAN until "Nearby devices" is granted; fails like a timeout. */
+export function localNetworkBlocked() {
+  return window.FrameMateAndroid?.localNetworkAllowed?.() === false;
+}

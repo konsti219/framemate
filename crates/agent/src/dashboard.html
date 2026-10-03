@@ -15,7 +15,7 @@
 <p><a id="stream">headset view</a></p>
 <pre id="out">connecting…</pre>
 <script>
-// Plain-text readout of /api/ws. Intentionally no styling or framework.
+// Plain-text readout of /api/ws, intentionally unstyled.
 const token = new URLSearchParams(location.search).get("token") ?? "";
 const out = document.getElementById("out");
 document.getElementById("stream").href = `/stream?token=${encodeURIComponent(token)}`;
@@ -44,8 +44,8 @@ function render(s) {
   L.push(`FrameMate agent ${s.agent.version} on ${s.agent.hostname} · updated ${time(s.agent.updated_at_ms)} · ${link}`);
   L.push(`Steam: ${s.steam.connected ? "connected" : `not connected (${s.steam.error ?? "?"})`} · last event ${time(s.steam.last_event_ms)}`);
 
-  // One battery. The percentage is Steam's (matches the headset UI; it reads ~kernel/0.9).
-  // The kernel fuel gauge adds power/temperature detail and is the fallback without Steam.
+  // Steam's percentage (≈ kernel / 0.9, matches the headset UI); kernel adds W/°C and is the
+  // fallback without Steam.
   L.push("", "== Battery");
   const b = t.battery, k = s.power?.battery;
   if (b) {

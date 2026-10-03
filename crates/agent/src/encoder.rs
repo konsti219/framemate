@@ -1,14 +1,9 @@
-//! Hardware H.264 encoding on the Snapdragon `iris` V4L2 stateful encoder
-//! (`/dev/video23`), using raw multiplanar M2M ioctls. No GStreamer: its
-//! `v4l2h264enc` fails caps negotiation with this driver and the Flatpak
-//! runtime doesn't ship it.
+//! H.264 on the `iris` V4L2 stateful encoder (`/dev/video23`) via raw multiplanar M2M ioctls
+//! (GStreamer's `v4l2h264enc` can't negotiate with this driver). Input is RGBA; the encoder
+//! does the YUV conversion.
 //!
-//! Input is RGBA ('AB24'); the encoder converts to YUV in hardware. Our only
-//! CPU work is expanding the RGB3 source to RGBA.
-//!
-//! Driver quirks seen on kernel 6.18:
-//! - STREAMOFF on a queue that was never started returns EBUSY (so we never do that).
-//! - Resolution is aligned to 16 (1080 → 1088); the SPS crops it back.
+//! Driver quirks: STREAMOFF on a never-started queue returns EBUSY; height is aligned to 16
+//! (1080 → 1088) and the SPS crops it back.
 
 use std::fs::{File, OpenOptions};
 use std::os::fd::{AsRawFd, RawFd};
@@ -115,16 +110,14 @@ impl Encoder {
         })
     }
 
-    /// Makes the next encoded frame a keyframe (for a newly joined viewer).
     pub fn force_keyframe(&self) {
         if let Err(e) = v4l2::set_control(self.fd(), CID_FORCE_KEY_FRAME, 1) {
             tracing::warn!("encoder: force keyframe: {e}");
         }
     }
 
-    /// Queues one frame; `sink` receives each encoded access unit (Annex B) and
-    /// whether it is a keyframe, as they complete. Timestamps must increase: the
-    /// encoder's rate control uses them (constant timestamps undershoot the bitrate ~5×).
+    /// `sink` gets each finished access unit (Annex B) and whether it's a keyframe.
+    /// Timestamps must increase: rate control uses them (constant ones undershoot ~5×).
     pub fn encode(&mut self, frame: &RgbFrame, timestamp_us: u64, sink: &mut impl FnMut(&[u8], bool)) -> Result<()> {
         let index = loop {
             if let Some(index) = self.free_outputs.pop() {
@@ -173,7 +166,6 @@ impl Drop for Encoder {
 }
 
 /// RGB3 → RGBA into the encoder's input buffer; rows past the source are black.
-/// About 1.5 ms per 1080p frame on the Frame.
 fn rgb_to_rgba(frame: &RgbFrame, dst: &mut [u8], stride: usize, height: usize) {
     for y in 0..height {
         let row = &mut dst[y * stride..y * stride + frame.width * 4];
@@ -182,7 +174,6 @@ fn rgb_to_rgba(frame: &RgbFrame, dst: &mut [u8], stride: usize, height: usize) {
             continue;
         }
         let src = &frame.data[y * frame.stride..y * frame.stride + frame.width * 3];
-        // Four pixels per step (12 → 16 bytes) so the compiler can keep it in registers.
         let mut dst_chunks = row.chunks_exact_mut(16);
         let mut src_chunks = src.chunks_exact(12);
         for (d, s) in (&mut dst_chunks).zip(&mut src_chunks) {
