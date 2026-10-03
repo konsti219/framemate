@@ -14,6 +14,8 @@ val tauriProperties = Properties().apply {
     }
 }
 
+val releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")?.let(::file)
+
 android {
     compileSdk = 37
     namespace = "dev.framemate.app"
@@ -25,6 +27,17 @@ android {
         targetSdk = 37
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+    }
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                // PKCS12: the key shares the keystore's password.
+                keyPassword = storePassword
+            }
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -40,6 +53,7 @@ android {
             }
         }
         getByName("release") {
+            signingConfig = signingConfigs.findByName("release")
             optimization {
                enable = true
             }

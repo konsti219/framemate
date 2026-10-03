@@ -11,6 +11,10 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+# FullscreenBridge, called from JS as `window.FrameMateAndroid` (see MainActivity.kt).
+-keepclassmembers class dev.framemate.app.MainActivity$FullscreenBridge {
+   @android.webkit.JavascriptInterface <methods>;
+}
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.

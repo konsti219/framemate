@@ -1,0 +1,102 @@
+# Builds the agent Flatpak bundle and the Android APK and uploads both as workflow artifacts.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flatpak:
+    name: Agent Flatpak
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-musl
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: agent-musl
+
+      - name: Install flatpak
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends flatpak
+
+      # Cross-builds the static musl binary and assembles + exports the bundle (no aarch64 code runs).
+      - name: Build bundle
+        run: scripts/flatpak.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: framemate-agent.flatpak
+          path: target/flatpak/framemate-agent.flatpak
+          if-no-files-found: error
+
+  apk:
+    name: Android APK
+    runs-on: ubuntu-24.04
+    env:
+      NDK_VERSION: 29.0.14206865
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: app-android
+
+      # Gradle 8 doesn't run on newer JDKs.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+          cache-dependency-path: |
+            app/src-tauri/gen/android/**/*.gradle*
+            app/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties
+
+      # The runner image ships the Android SDK ($ANDROID_HOME), but not necessarily this NDK.
+      - name: Install NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" >/dev/null
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Signed with the release key from the repository secrets (see build.gradle.kts).
+      - name: Build APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.jks"
+          base64 -d <<< "$ANDROID_KEYSTORE_BASE64" > "$ANDROID_KEYSTORE_PATH"
+          bun run tauri android build --apk --target aarch64
+          rm "$ANDROID_KEYSTORE_PATH"
+          cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk \
+            ../framemate.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: framemate.apk
+          path: framemate.apk
+          if-no-files-found: error
