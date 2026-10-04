@@ -29,6 +29,19 @@ Make sure of the following:
 If you encounter an error during installation please send me the logs and the commands you ran in a github issue.
 Should the app say "Wrong token", get it with `flatpak run --user dev.framemate.Agent token`. Note that reinstalling keeps the token.
 
+### Installing from Desktop Mode
+
+If `install-service` says "systemd isn't reachable from this terminal": Desktop Mode on the Frame is a nested desktop without access to your user's systemd, so
+`install-service` can't start the agent from there. The agent is still installed and starts with
+the next restart of the Frame. To start it right away, run the command it prints:
+
+```sh
+env XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus \
+  flatpak run --user dev.framemate.Agent install-service
+```
+
+Installing over SSH doesn't have this problem.
+
 ## Other issues
 
 You encountered a different issue or think you found a bug, please let me know!

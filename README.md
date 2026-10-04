@@ -54,8 +54,8 @@ You need a Steam Frame and an Android phone on the same network.
 
 ### 1. Agent on the Steam Frame
 
-The agent ships as a Flatpak. Open a terminal on the Frame (Desktop Mode → Konsole, or via SSH)
-and run:
+The agent ships as a Flatpak. Open a terminal on the Frame via SSH (recommended), or Desktop
+Mode → Konsole ([see here](TROUBLESHOOTING.md#installing-from-desktop-mode)), and run:
 
 ```sh
 curl -LO https://github.com/nailuj05/framemate/releases/latest/download/framemate-agent.flatpak
@@ -69,10 +69,13 @@ rm framemate-agent.flatpak
 - `install-service` registers a user service, so the agent starts with every boot – in
   Game Mode too – and restarts it right away. It then runs a self check and prints the
   address and access token (e.g. `MCK55-EGGCG`) you'll enter in the app.
+  In Desktop Mode it can't start the agent right away (the nested desktop has no access to the
+  user's systemd); the agent then starts with the next restart, and the command prints how to
+  start it immediately.
 - `flatpak run --user dev.framemate.Agent check` repeats the self check (useful when the app can't
   connect); `flatpak run --user dev.framemate.Agent token` prints just the token.
 
-To **update**, download the new `framemate-agent.flatpak` and run the same three commands
+To **update**, download the new `framemate-agent.flatpak` and run the same commands
 again. To **remove** it:
 
 ```sh
