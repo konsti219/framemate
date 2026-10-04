@@ -24,10 +24,22 @@ Make sure of the following:
  
  Note: Some guest or mesh wifi networks may isolate devices by default, make sure that isn't the issue before proceeding.
 
+### "FrameMate only accepts connections from the local network"
+
+The agent rejects devices it doesn't consider part of your local network. That can hit unusual
+setups: a phone on a VPN, a guest or mesh Wi-Fi with its own subnet, or a router handing out
+IPv6 addresses from several prefixes. The agent's log names the rejected address
+(`journalctl --user -n 50 _COMM=framemate-agent`). To turn the check off, add
+`Environment=FRAMEMATE_ALLOW_REMOTE=1` under `[Service]` in
+`~/.config/systemd/user/framemate-agent.service`, then run
+`systemctl --user daemon-reload && systemctl --user restart framemate-agent`. Please also open
+an issue with your setup, so the check can be improved.
+
 ## Installation issues
 
 If you encounter an error during installation please send me the logs and the commands you ran in a github issue.
 Should the app say "Wrong token", get it with `flatpak run --user dev.framemate.Agent token`. Note that reinstalling keeps the token.
+You may generate a new token with `flatpak run --user dev.framemate.Agent rotate-token` and enter the it in the app.
 
 ### Installing from Desktop Mode
 

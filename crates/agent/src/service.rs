@@ -80,6 +80,29 @@ pub async fn uninstall() -> anyhow::Result<()> {
     Ok(())
 }
 
+pub async fn rotate_token() -> anyhow::Result<()> {
+    anyhow::ensure!(
+        std::env::var_os("FRAMEMATE_TOKEN").is_none(),
+        "FRAMEMATE_TOKEN is set and overrides the token file"
+    );
+    let token = crate::config::format_token(&crate::config::rotate_token()?);
+    println!("New token: {token}");
+    match Systemd::reachable().await {
+        // TryRestartUnit only restarts it if it's running; NoSuchUnit without install-service.
+        Ok(systemd) => match systemd.call("TryRestartUnit", &(UNIT, "replace")).await {
+            Ok(()) => println!("Restarted {UNIT}; enter the new token in the app."),
+            Err(_) => println!("{UNIT} isn't installed; restart the agent to use the new token."),
+        },
+        Err(_) => {
+            println!("The running agent keeps the old token until it restarts. Restart the Frame, or run:\n");
+            println!(
+                "  env XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus \\\n    systemctl --user restart {UNIT}"
+            );
+        }
+    }
+    Ok(())
+}
+
 /// `(installation flag incl. trailing space, app id)` when running as a Flatpak.
 fn flatpak_run() -> Option<(String, String)> {
     let app_id = std::env::var("FLATPAK_ID").ok()?;

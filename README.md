@@ -73,7 +73,8 @@ rm framemate-agent.flatpak
   user's systemd); the agent then starts with the next restart, and the command prints how to
   start it immediately.
 - `flatpak run --user dev.framemate.Agent check` repeats the self check (useful when the app can't
-  connect); `flatpak run --user dev.framemate.Agent token` prints just the token.
+  connect); `flatpak run --user dev.framemate.Agent token` prints just the token, and
+  `flatpak run --user dev.framemate.Agent rotate-token` replaces it with a new one.
 
 To **update**, download the new `framemate-agent.flatpak` and run the same commands
 again. To **remove** it:
@@ -106,7 +107,8 @@ page in any browser, and `http://frame.local:7380/stream?token=<your token>` mir
 - **Local network only.** The agent listens on port 7380 and talks plain HTTP/WebSocket, protected
   by the token. Don't expose that port to the internet. The connection isn't encrypted, so others
   on the same network could read the token and what's sent, including Mirroring. Use FrameMate on
-  networks you trust, like your home Wi-Fi, not on public or shared ones.
+  networks you trust, like your home Wi-Fi, not on public or shared ones. The agent also rejects
+  connections from public addresses outside your network (relevant for IPv6, where the Frame is globally addressable)
 - **Developer Mode.** FrameMate doesn't depend on it. Note that while it is on, SteamOS's devkit
   service exposes Steam's debugging interface to your whole network (port 8081); FrameMate never
   uses that port.

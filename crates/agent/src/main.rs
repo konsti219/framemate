@@ -1,3 +1,4 @@
+mod access;
 mod cdp;
 mod check;
 mod config;
@@ -23,7 +24,8 @@ commands:
   install-service    start the agent with the user session (systemd user unit)
   uninstall-service  remove that unit again
   token              print the API token for the companion app
-  check              check the running agent and print what the app needs";
+  check              check the running agent and print what the app needs
+  rotate-token       replace the API token (and restart the agent to use it)";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,6 +34,7 @@ async fn main() -> anyhow::Result<()> {
         Some("install-service") => return service::install().await,
         Some("uninstall-service") => return service::uninstall().await,
         Some("check") => return check::run().await,
+        Some("rotate-token") => return service::rotate_token().await,
         Some("token") => {
             println!("{}", config::format_token(&config::load_or_create_token()?));
             return Ok(());

@@ -49,6 +49,7 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
         .route("/api/stream/ws", get(stream_ws))
         .route("/favicon.svg", get(|| async { asset("image/svg+xml", include_bytes!("../../../assets/framemate-black.svg")) }))
         .route("/healthz", get(|| async { "ok" }))
+        .layer(axum::middleware::from_fn_with_state(config.allow_remote, crate::access::local_only))
         .with_state(AppState {
             hub,
             token: config.token.as_str().into(),
@@ -63,9 +64,14 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
         }
         result => result?,
     };
-    let token = crate::config::format_token(&config.token);
-    tracing::info!("listening on http://{}/?token={token} (token: {token})", config.listen);
-    axum::serve(listener, app)
+    tracing::info!("listening on {}", config.listen);
+    // The token never goes to the log (people paste logs into issues); only to a terminal.
+    // SAFETY: isatty only inspects the descriptor.
+    if unsafe { libc::isatty(libc::STDOUT_FILENO) } == 1 {
+        let token = crate::config::format_token(&config.token);
+        println!("Dashboard: http://localhost:{}/?token={token}", config.listen.port());
+    }
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())

@@ -16,6 +16,8 @@ pub struct Config {
     pub token: String,
     pub power_supply_dir: PathBuf,
     pub stream: StreamConfig,
+    /// Accept clients from outside the local network (see access.rs).
+    pub allow_remote: bool,
 }
 
 impl Config {
@@ -44,6 +46,7 @@ impl Config {
                 fps,
                 bitrate,
             },
+            allow_remote: matches!(env_or("FRAMEMATE_ALLOW_REMOTE", "").as_str(), "1" | "true" | "yes"),
         })
     }
 }
@@ -110,6 +113,15 @@ pub fn load_or_create_token() -> anyhow::Result<String> {
             return Ok(token);
         }
     }
+    write_new_token(&path)
+}
+
+/// Replaces the token; the running agent only reads it at startup.
+pub fn rotate_token() -> anyhow::Result<String> {
+    write_new_token(&config_dir()?.join("token"))
+}
+
+fn write_new_token(path: &std::path::Path) -> anyhow::Result<String> {
     let mut bytes = [0u8; TOKEN_LEN];
     std::fs::File::open("/dev/urandom")?.read_exact(&mut bytes)?;
     // 256 is a multiple of 32, so `% 32` is unbiased.
@@ -123,7 +135,7 @@ pub fn load_or_create_token() -> anyhow::Result<String> {
         .create(true)
         .truncate(true)
         .mode(0o600)
-        .open(&path)
+        .open(path)
         .with_context(|| format!("writing {}", path.display()))?;
     std::io::Write::write_all(&mut file, format_token(&token).as_bytes())?;
     tracing::info!("generated a new API token");
