@@ -103,6 +103,20 @@
     if (video.currentTime - start > 10) buffer.remove(start, video.currentTime - 5);
   }
 
+  // In the background the socket dies or, worse, keeps the Frame capturing for nobody:
+  // stop it, and start fresh (new keyframe, no stale buffer) when the app comes back.
+  function onVisibilityChange() {
+    if (closed) return;
+    clearTimeout(retry);
+    if (socket) socket.onclose = null;
+    socket?.close();
+    socket = null;
+    if (document.visibilityState === "visible") {
+      status = "Connecting…";
+      connect();
+    }
+  }
+
   onMount(connect);
   onDestroy(() => {
     if (fullscreen) applyFullscreen(false);
@@ -113,7 +127,7 @@
   });
 </script>
 
-<svelte:document onfullscreenchange={onFullscreenChange} />
+<svelte:document onfullscreenchange={onFullscreenChange} onvisibilitychange={onVisibilityChange} />
 
 <div class="player" class:fullscreen>
   <video bind:this={video} autoplay muted playsinline></video>

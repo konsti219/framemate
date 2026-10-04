@@ -20,17 +20,27 @@
   ];
 
   const battery = $derived(agent.state?.steam.topics.battery);
+  // Old data stays visible while reconnecting, dimmed and with its age in the top bar.
+  const stale = $derived(!!agent.state && !agent.live);
+  const lastUpdate = $derived(
+    new Date(agent.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  );
 
   onMount(() => {
     agent.connect();
     if (updates.autoCheck) updates.check();
     if (!agent.configured) goto("/settings");
-    // Mobile WebViews drop sockets in the background; reconnect when we come back.
+    // Coming back from the background: the socket may be dead without knowing it, so always
+    // fetch a fresh snapshot instead of trusting the old one.
     const onVisible = () => {
-      if (document.visibilityState === "visible" && agent.status !== "connected") agent.connect();
+      if (document.visibilityState === "visible") agent.refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onVisible);
+    };
   });
 </script>
 
@@ -40,10 +50,13 @@
     <a href="/" class="title">FrameMate</a>
     <span class="spacer"></span>
     {#if battery}
-      <span class="battery">
+      <span class="battery" class:stale>
         {Math.round(battery.level * 100)}%
         <Battery level={battery.level} charging={battery.ac_state === 2} size={18} />
       </span>
+    {/if}
+    {#if stale}
+      <span class="stale-note">{agent.status === "connecting" ? "Updating…" : lastUpdate}</span>
     {/if}
     <span class="status {agent.status}" title={agent.status}></span>
     <a href="/help" class="help" class:active={true} aria-label="Help" >
@@ -51,7 +64,7 @@
     </a>
   </header>
 
-  <main>
+  <main class:stale>
     {@render children()}
   </main>
 
@@ -120,6 +133,22 @@
     flex: 1;
     overflow-y: auto;
     padding-bottom: 24px;
+  }
+  /* Delayed, so the usual quick refresh on resume doesn't flash. */
+  main.stale,
+  .battery.stale {
+    opacity: 0.45;
+    transition: opacity 0.2s 0.8s;
+  }
+  .stale-note {
+    color: var(--muted);
+    font-size: 13px;
+    animation: appear 0.2s 0.8s both;
+  }
+  @keyframes appear {
+    from {
+      opacity: 0;
+    }
   }
   .tabs {
     display: flex;
