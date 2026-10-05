@@ -4,6 +4,7 @@
 //! - `GET /api/state`   full state as JSON
 //! - `GET /api/ws`      full state as JSON on connect and after every change (throttled)
 //! - `GET /stream`      headset-view player page (token read from `?token=` by the page)
+//! - `GET /player.js`   the player itself, shared with the app, no auth
 //! - `GET /api/stream/ws` headset view: JSON `{codec}`, fMP4 init segment, then one
 //!   moof+mdat per frame (see stream.rs, fmp4.rs)
 //! - `GET /favicon.svg` logo from `assets/`, no auth
@@ -47,6 +48,13 @@ pub async fn serve(hub: Arc<Hub>, stream: Arc<LiveStream>, config: &Config) -> a
         .route("/api/state", get(state))
         .route("/api/ws", get(ws))
         .route("/stream", get(|| async { Html(include_str!("stream.html")) }))
+        .route(
+            "/player.js",
+            get(|| async {
+                // Revalidated every time, so an updated agent isn't stuck with a cached player
+                ([(header::CONTENT_TYPE, "text/javascript"), (header::CACHE_CONTROL, "no-cache")], include_str!("player.js"))
+            }),
+        )
         .route("/api/stream/ws", get(stream_ws))
         .route("/favicon.svg", get(|| async { asset("image/svg+xml", include_bytes!("../../../assets/framemate-black.svg")) }))
         .route("/healthz", get(|| async { "ok" }))

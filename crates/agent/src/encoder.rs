@@ -22,6 +22,8 @@ const CID_H264_PROFILE: u32 = 0x0099_0a6b; // 4 = High
 const CID_PREPEND_SPS_PPS_TO_IDR: u32 = 0x0099_0b84;
 
 const BUFFER_COUNT: u32 = 4;
+/// How long `encode` waits for the frame it just queued; encoding 1080p takes a few ms.
+const OUTPUT_WAIT_MS: u32 = 25;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Config {
@@ -130,7 +132,16 @@ impl Encoder {
         };
         rgb_to_rgba(frame, self.outputs[index as usize].as_mut_slice(), self.stride, self.height);
         v4l2::queue(self.fd(), TYPE_OUTPUT_MPLANE, index, self.sizeimage as u32, timestamp_us)?;
-        self.service(sink)
+        // Hand this frame's output on now rather than with the next frame, which costs a whole frame
+        // interval. Short sleeps instead of poll(): the m2m poll reports POLLERR once the encoder has
+        // taken the input buffer and the output queue is empty.
+        for _ in 0..OUTPUT_WAIT_MS {
+            if self.service(sink)? > 0 {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        Ok(())
     }
 
     fn fd(&self) -> RawFd {
@@ -138,8 +149,10 @@ impl Encoder {
     }
 
     /// Reclaims consumed input buffers and delivers finished output, without blocking.
-    fn service(&mut self, sink: &mut impl FnMut(&[u8], bool)) -> Result<()> {
+    /// Returns how many encoded frames went to `sink`.
+    fn service(&mut self, sink: &mut impl FnMut(&[u8], bool)) -> Result<usize> {
         let fd = self.fd();
+        let mut delivered = 0;
         while let Some(buf) = v4l2::dequeue(fd, TYPE_OUTPUT_MPLANE)? {
             self.free_outputs.push(buf.index);
         }
@@ -148,12 +161,13 @@ impl Encoder {
             if end > start {
                 let data = &self.captures[buf.index as usize].as_slice()[start..end];
                 sink(data, buf.flags & v4l2::BUF_FLAG_KEYFRAME != 0);
+                delivered += 1;
             }
             if buf.flags & v4l2::BUF_FLAG_LAST == 0 {
                 v4l2::queue(fd, TYPE_CAPTURE_MPLANE, buf.index, 0, 0)?;
             }
         }
-        Ok(())
+        Ok(delivered)
     }
 }
 

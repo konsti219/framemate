@@ -1,6 +1,9 @@
 <script lang="ts">
-  // Same protocol as the agent's /stream page (JSON {codec}, fMP4 init, moof+mdat → MSE).
-  // The agent only captures while someone watches, so leaving this page stops it.
+  // Live headset view through the agent's player (crates/agent/src/player.js), shared with its
+  // /stream page: WebCodecs when available (low latency), MSE otherwise. The agent only captures
+  // while someone watches, so leaving this page stops it.
+  // The agent only captures while a viewer is connected, so leaving this tab stops it.
+  // The app is portrait-only; fullscreen switches to landscape (natively on Android).
   import { onDestroy, onMount } from "svelte";
   import { pushState } from "$app/navigation";
   import { page } from "$app/state";
@@ -8,13 +11,12 @@
   import Icon from "$lib/components/Icon.svelte";
   import Row from "$lib/components/Row.svelte";
   import Section from "$lib/components/Section.svelte";
+  import { startPlayer } from "../../../../crates/agent/src/player.js";
 
   let video: HTMLVideoElement;
+  let canvas: HTMLCanvasElement;
   let status = $state("Connecting…");
-  let socket: WebSocket | null = null;
-  let retry: ReturnType<typeof setTimeout> | undefined;
-  let closed = false;
-  let objectUrl: string | undefined;
+  let player: { close(): void } | undefined;
   const stats = $derived(agent.state?.stream);
   const fullscreen = $derived(!!page.state.fullscreen);
 
@@ -41,96 +43,39 @@
     if (!document.fullscreenElement && page.state.fullscreen) history.back();
   }
 
-  function connect() {
-    const ws = new WebSocket(agent.socketUrl("/api/stream/ws"));
-    socket = ws;
-    ws.binaryType = "arraybuffer";
-    let buffer: SourceBuffer | null = null;
-    const queue: ArrayBuffer[] = [];
-    const pump = () => {
-      if (buffer && !buffer.updating && queue.length) buffer.appendBuffer(queue.shift()!);
-    };
-
-    ws.onmessage = event => {
-      if (typeof event.data !== "string") {
-        queue.push(event.data);
-        pump();
-        return;
-      }
-      const { codec } = JSON.parse(event.data);
-      const type = `video/mp4; codecs="${codec}"`;
-      if (!MediaSource.isTypeSupported(type)) {
-        status = `This device can't play ${codec}`;
-        closed = true;
-        ws.close();
-        return;
-      }
-      const source = new MediaSource();
-      if (objectUrl) URL.revokeObjectURL(objectUrl); // previous connection's source
-      objectUrl = URL.createObjectURL(source);
-      video.src = objectUrl;
-      source.addEventListener(
-        "sourceopen",
-        () => {
-          buffer = source.addSourceBuffer(type);
-          buffer.mode = "sequence";
-          buffer.addEventListener("updateend", () => {
-            keepLive(buffer!);
-            pump();
-          });
-          pump();
-        },
-        { once: true },
-      );
-      status = "";
-    };
-    ws.onclose = () => {
-      if (closed) return;
-      status = "Reconnecting…";
-      retry = setTimeout(connect, 2000);
-    };
-  }
-
-  // Catch up by playing faster; seeking restarts decoding at the last keyframe.
-  function keepLive(buffer: SourceBuffer) {
-    if (buffer.updating || !buffer.buffered.length) return;
-    const start = buffer.buffered.start(0);
-    const end = buffer.buffered.end(buffer.buffered.length - 1);
-    const behind = end - video.currentTime;
-    if (video.currentTime < start || behind > 2) video.currentTime = Math.max(start, end - 0.2);
-    video.playbackRate = behind > 0.3 ? 1.1 : 1.0;
-    if (video.paused) video.play().catch(() => {});
-    if (video.currentTime - start > 10) buffer.remove(start, video.currentTime - 5);
+  function play() {
+    player?.close();
+    player = startPlayer({
+      url: agent.socketUrl("/api/stream/ws"),
+      video,
+      canvas,
+      onStatus: (text: string) => (status = text),
+    });
   }
 
   // In the background the socket dies or, worse, keeps the Frame capturing for nobody:
   // stop it, and start fresh (new keyframe, no stale buffer) when the app comes back.
   function onVisibilityChange() {
-    if (closed) return;
-    clearTimeout(retry);
-    if (socket) socket.onclose = null;
-    socket?.close();
-    socket = null;
+    player?.close();
+    player = undefined;
     if (document.visibilityState === "visible") {
       status = "Connecting…";
-      connect();
+      play();
     }
   }
 
-  onMount(connect);
+  onMount(play);
   onDestroy(() => {
     if (fullscreen) applyFullscreen(false);
-    closed = true;
-    clearTimeout(retry);
-    socket?.close();
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    player?.close();
   });
 </script>
 
 <svelte:document onfullscreenchange={onFullscreenChange} onvisibilitychange={onVisibilityChange} />
 
 <div class="player" class:fullscreen>
-  <video bind:this={video} autoplay muted playsinline></video>
+  <video bind:this={video} autoplay muted playsinline hidden></video>
+  <canvas bind:this={canvas} hidden></canvas>
   {#if status}<div class="overlay">{status}</div>{/if}
   {#if fullscreen}
     <button class="control exit" onclick={() => history.back()} aria-label="Exit fullscreen">
@@ -159,10 +104,15 @@
     background: #000;
     aspect-ratio: 16 / 9;
   }
-  video {
+  video,
+  canvas {
     width: 100%;
     height: 100%;
     display: block;
+    object-fit: contain;
+  }
+  [hidden] {
+    display: none;
   }
   .player.fullscreen {
     position: fixed;
