@@ -27,6 +27,7 @@
         try { handler(...args); } catch (e) { fail(topic, e); }
       });
       if (h?.unregister) handles.push(h);
+      return h;
     } catch (e) { fail(topic, e); }
   };
   const poll = (topic, ms, fn) => {
@@ -61,27 +62,45 @@
   // --- downloads: this device only (other PCs show up via Remote Downloads) ---
   const isLocal = clientId => String(clientId) === "0";
   const downloads = () => {
-    subscribe("downloads", cb => SteamClient.Downloads.RegisterForDownloadItems(cb), (_flag, clients) => {
-      const local = (clients ?? []).filter(c => isLocal(c.remote_client_id)).flatMap(c => c.item_data ?? []);
-      emit("downloads", local.map(i => ({
-        appid: i.appid,
-        name: appName(i.appid),
-        queue_index: i.queue_index,
-        active: i.active,
-        paused: i.paused,
-        completed: i.completed,
-        completed_time: i.completed_time,
-        percent: i.overall_percent_complete ?? null,
-        error: i.update_error || null,
-        buildid: i.buildid,
-        target_buildid: i.target_buildid,
-      })));
-    });
+    // The queue callback can stop arriving (seen after a reboot plus suspends) while the overview
+    // below keeps firing, leaving the queue empty during a download. Registering again makes Steam
+    // send the current queue at once, so do that whenever the overview names an app the queue
+    // lacks, and once a minute anyway.
+    let itemsHandle = null;
+    let listed = new Set();
+    const subscribeItems = () => {
+      try { itemsHandle?.unregister(); } catch {}
+      if (handles.includes(itemsHandle)) handles.splice(handles.indexOf(itemsHandle), 1);
+      itemsHandle = subscribe("downloads", cb => SteamClient.Downloads.RegisterForDownloadItems(cb), (_flag, clients) => {
+        const local = (clients ?? []).filter(c => isLocal(c.remote_client_id)).flatMap(c => c.item_data ?? []);
+        listed = new Set(local.map(i => i.appid));
+        emit("downloads", local.map(i => ({
+          appid: i.appid,
+          name: appName(i.appid),
+          queue_index: i.queue_index,
+          active: i.active,
+          paused: i.paused,
+          completed: i.completed,
+          completed_time: i.completed_time,
+          percent: i.overall_percent_complete ?? null,
+          error: i.update_error || null,
+          buildid: i.buildid,
+          target_buildid: i.target_buildid,
+        })));
+      });
+    };
+    subscribeItems();
+    timers.push(setInterval(subscribeItems, 60000));
+    let resubscribedFor = null;
     // ~1 Hz while downloading; may describe a remote client's transfer, reported as idle.
     subscribe("download_overview", cb => SteamClient.Downloads.RegisterForDownloadOverview(cb), o => {
       if (!isLocal(o.remote_client_id)) {
         emit("download_overview", { appid: null });
         return;
+      }
+      if (o.update_appid && !listed.has(o.update_appid) && resubscribedFor !== o.update_appid) {
+        resubscribedFor = o.update_appid;
+        subscribeItems();
       }
       emit("download_overview", {
         appid: o.update_appid || null,
